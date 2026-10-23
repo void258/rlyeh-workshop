@@ -9,6 +9,9 @@ requires-python = ">=3.11"
 authors = [{ name = "void258" }]
 dependencies = [
     "pyyaml>=6",
+    "numpy>=1.26",
+    "soundfile>=0.12",
+    "pypinyin>=0.50",
 ]
 
 [project.scripts]

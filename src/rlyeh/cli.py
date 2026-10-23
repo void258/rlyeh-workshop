@@ -6,7 +6,9 @@ import re
 import sys
 from importlib import resources
 
-from . import SPEC_VERSION, __version__, i18n, importers
+from . import SPEC_VERSION, __version__, i18n, importers, voice
+from .backends import BackendError
+from .backends.worker import WorkerError
 from .i18n import t
 from .project import Project, ProjectError, find_root
 from .script import ids as script_ids
@@ -104,9 +106,72 @@ def cmd_status(args):
                          voiced=sum(1 for s in spoken if s.voiced),
                          scenes=sum(1 for it in ch.items if isinstance(it, Scene)),
                          directives=sum(1 for it in ch.items if isinstance(it, Directive))))
-    text = '\n'.join(t('cli.status_chapter', n=r['chapter'], title=r['title'], lines=r['lines'], voiced=r['voiced'],
-                       scenes=r['scenes'], directives=r['directives']) for r in rows)
-    _out(args, dict(ok=True, project=proj.config.get('project', {}), chapters=rows), text)
+    lines = [t('cli.status_chapter', n=r['chapter'], title=r['title'], lines=r['lines'], voiced=r['voiced'],
+               scenes=r['scenes'], directives=r['directives']) for r in rows]
+    vs = voice.summary(proj)
+    lines.append(t('cli.status_voice', minutes=round(vs['seconds'] / 60, 1), **{k: v for k, v in vs.items() if k != 'seconds'}))
+    if vs['no_voice']:
+        lines.append(t('cli.status_no_voice', names='、'.join(vs['no_voice'])))
+    _out(args, dict(ok=True, project=proj.config.get('project', {}), chapters=rows, voice=vs), '\n'.join(lines))
+    return 0
+
+
+def _ids(s):
+    return set(filter(None, (s or '').split(','))) or None
+
+
+def _progress(args):
+    return None if args.json else (lambda line: print('  ' + line, flush=True))
+
+
+def cmd_voice(args):
+    proj = _project(args)
+    on = _progress(args)
+    if args.action == 'design':
+        index = voice.design(proj, _ids(args.chars), args.n, on)
+        _out(args, dict(ok=True, candidates=index), t('cli.voice_design_done', n=len(index)))
+    elif args.action == 'pick':
+        rec = voice.pick(proj, args.char, args.choice, args.note or '')
+        _out(args, dict(ok=True, pick=rec), t('cli.voice_pick_done', cid=args.char, file=rec['choice']))
+    elif args.action == 'extra':
+        refs = voice.make_extra(proj, args.char, on_line=on)
+        _out(args, dict(ok=True, extra=refs), t('cli.voice_extra_done', cid=args.char, n=len(refs)))
+    elif args.action == 'build':
+        done = voice.build(proj, _ids(args.ids), args.seed, args.force, args.limit, on)
+        _out(args, dict(ok=True, built=done), t('cli.voice_build_done', n=len(done)) if done else t('cli.voice_build_none'))
+    elif args.action == 'qa':
+        report = voice.qa(proj, _ids(args.ids), on)
+        if report is None:
+            _out(args, dict(ok=True, skipped=True), t('cli.voice_qa_skipped'))
+            return 0
+        bad = [k for k, v in report.items() if v.get('bad') and (not args.ids or k in _ids(args.ids))]
+        _out(args, dict(ok=True, report=report, failed=bad), t('cli.voice_qa_done', n=len(report), bad=len(bad), ids='：' + ','.join(bad) if bad else ''))
+    elif args.action == 'redo':
+        ids = set(_ids(args.ids) or ())
+        if args.failed:
+            ids |= set(voice.failed(proj))
+        if args.marked:
+            ids |= set(voice.marked(proj))
+        if args.voice:
+            ids |= {it.id for _, it, v, _ in voice.lines(proj) if v == args.voice}
+        left = voice.redo(proj, sorted(ids), on)
+        _out(args, dict(ok=True, redone=sorted(ids), still_failing=left),
+             t('cli.voice_redo_done', n=len(ids), ids=','.join(left) if left else '—'))
+    return 0
+
+
+def cmd_bleep(args):
+    proj = _project(args)
+    done, problems = voice.bleep(proj, _progress(args))
+    lines = [t('cli.bleep_done', n=len(done))] + [t('cli.bleep_problem', id=p['id'], reason=p['reason']) for p in problems]
+    _out(args, dict(ok=not problems, bleeped=done, problems=problems), '\n'.join(lines))
+    return 0
+
+
+def cmd_preview(args):
+    proj = _project(args)
+    from .preview import serve
+    serve(proj, args.host, args.port, on_ready=lambda url: print(t('cli.preview_at', url=url), flush=True))
     return 0
 
 
@@ -156,6 +221,39 @@ def build_parser():
     p.set_defaults(func=cmd_import)
     p = sub.add_parser('status', parents=[common], help='project status / 项目进度')
     p.set_defaults(func=cmd_status)
+
+    p = sub.add_parser('voice', help='voices and voice acting / 声线与配音')
+    vs = p.add_subparsers(dest='action', required=True)
+    q = vs.add_parser('design', parents=[common], help='voice candidates / 生成候选声线')
+    q.add_argument('--chars', help='character IDs, comma separated / 角色 ID，逗号分隔')
+    q.add_argument('-n', type=int, help='candidates per character / 每个角色几段')
+    q = vs.add_parser('pick', parents=[common], help='choose a candidate / 选定声线')
+    q.add_argument('char')
+    q.add_argument('choice', help='candidate number or file / 候选序号或文件')
+    q.add_argument('--note')
+    q = vs.add_parser('extra', parents=[common], help='extra references in the same voice / 同音色补附加参考')
+    q.add_argument('char')
+    q = vs.add_parser('build', parents=[common], help='synthesize lines / 生成配音')
+    q.add_argument('--ids')
+    q.add_argument('--seed', type=int, default=123)
+    q.add_argument('--force', action='store_true')
+    q.add_argument('--limit', type=int, default=0)
+    q = vs.add_parser('qa', parents=[common], help='speech-recognition QA / 识别质检')
+    q.add_argument('--ids')
+    q = vs.add_parser('redo', parents=[common], help='retry with new seeds / 换种子重做')
+    q.add_argument('--ids')
+    q.add_argument('--failed', action='store_true', help='lines that failed QA / 质检不合格的')
+    q.add_argument('--marked', action='store_true', help='lines marked in review / 审听标了重做的')
+    q.add_argument('--voice', help='every line of this character / 这个角色的全部台词')
+    for q in vs.choices.values():
+        q.set_defaults(func=cmd_voice)
+
+    p = sub.add_parser('bleep', parents=[common], help='bleep profanity / 消音')
+    p.set_defaults(func=cmd_bleep)
+    p = sub.add_parser('preview', parents=[common], help='local preview and review pages / 本地预览与审核页')
+    p.add_argument('--host', default='127.0.0.1')
+    p.add_argument('--port', type=int, default=8766)
+    p.set_defaults(func=cmd_preview)
     return ap
 
 
@@ -173,6 +271,9 @@ def main(argv=None):
     except ProjectError as e:
         _out(args, dict(ok=False, error=str(e)), str(e))
         return 2
+    except (voice.VoiceError, BackendError, WorkerError) as e:
+        _out(args, dict(ok=False, error=str(e)), t('cli.error', err=e))
+        return 3
 
 
 if __name__ == '__main__':

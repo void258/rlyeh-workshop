@@ -137,6 +137,40 @@ min_session_messages = 20         # 少于这么多条的一场当作测试，�
 "张三" = "小林"
 ```
 
+### 配音相关的配置
+
+```toml
+[voice]
+candidates = 3                    # 每个角色生成几段候选声线
+seeds = [123, 7, 42, 2026, 99]    # 第一个是默认种子，后面的给重做用
+min_similarity = 0.75             # 质检：识别结果和台词的相似度下限
+max_extra = 1.4                   # 质检：识别出的字数最多是台词的几倍
+
+# 模型类后端跑在用户自己的 Python 环境里（拉莱耶工坊本身不装 torch）
+[backends.qwen3-tts]
+python = "D:/qwen3-tts/env/python.exe"
+design_model = "D:/qwen3-tts/models/Qwen3-TTS-12Hz-1.7B-VoiceDesign"
+base_model = "D:/qwen3-tts/models/Qwen3-TTS-12Hz-1.7B-Base"
+
+[backends.sensevoice]
+python = "C:/python311/python.exe"      # 装了 funasr 的 Python
+model = "D:/models/SenseVoiceSmall"
+
+[backends.funasr-fa]
+python = "C:/python311/python.exe"
+```
+
+`tts = "placeholder"`、`voice_design = "placeholder"`、`asr = "none"` 是占位后端：不装任何模型也能把流程跑通，配音会是一段长度合适的音调。
+
+声线相关的文件：
+
+| 文件 | 内容 |
+|---|---|
+| `voices/candidates/<角色ID>_<n>.wav` + `voices/candidates.json` | 候选声线和它们念的文字 |
+| `voices/extra/` + `voices/extra.json` | 同一音色补念的附加参考（`replay voice extra`，文字写在 cast.yaml 的 `voice.extra_texts`） |
+| `review/voice-pick.json` | 每个角色选定哪一段（选声线页写入；cast.yaml 里写了 `voice.reference` 的以 cast.yaml 为准） |
+| `build/voice_qa.json` | 每句的质检结果：相似度、识别到的文字、时长、是否不合格 |
+
 ## 导入后的记录
 
 `replay import` 把 `logs/raw/` 里的所有导出（txt、zip）合并成 `logs/events.jsonl`，每行一条：

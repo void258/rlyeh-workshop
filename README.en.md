@@ -6,7 +6,7 @@
 
 Hand R'lyeh Workshop a session log exported from Foundry VTT or a similar platform. Your usual AI agent (Claude Code, Codex, or DeepSeek Harness) polishes the script, designs the characters, and writes the art and music prompts. R'lyeh Workshop handles voice acting, QA, profanity bleeping, sprite post-processing, BGM and sound effects, then produces a visual novel that plays in the browser plus a frame-by-frame rendered video. The steps that need taste — picking voices, approving art, listening line by line — stay with you, in a graphical interface.
 
-> **Status: M1 in progress.** The specification (M0) is final. What works today is log import (`replay import`: Foundry VTT, plain text, QQ exports), script parsing, linting (`replay lint`) and line IDs (`replay ids`); the voice, art and rendering pipeline is being brought over. Design discussion is welcome in Issues.
+> **Status: M1 in progress.** The specification (M0) is final. What works today is log import (`replay import`), script parsing and linting (`replay lint`, `replay ids`), the whole voice line (`replay voice design / pick / build / qa / redo`, `replay bleep`) and the voice-picking and line-review pages (`replay preview`); art, the player and rendering are being brought over. Design discussion is welcome in Issues.
 
 ## What it does
 

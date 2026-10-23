@@ -137,6 +137,40 @@ min_session_messages = 20         # shorter sessions are treated as tests and dr
 "John" = "Kobayashi"
 ```
 
+### Voice settings
+
+```toml
+[voice]
+candidates = 3                    # voice candidates per character
+seeds = [123, 7, 42, 2026, 99]    # the first is the default seed; the rest are for redos
+min_similarity = 0.75             # QA: minimum similarity between recognized text and the line
+max_extra = 1.4                   # QA: maximum ratio of recognized length to line length
+
+# Model backends run in the user's own Python environment (R'lyeh Workshop itself doesn't install torch)
+[backends.qwen3-tts]
+python = "D:/qwen3-tts/env/python.exe"
+design_model = "D:/qwen3-tts/models/Qwen3-TTS-12Hz-1.7B-VoiceDesign"
+base_model = "D:/qwen3-tts/models/Qwen3-TTS-12Hz-1.7B-Base"
+
+[backends.sensevoice]
+python = "C:/python311/python.exe"      # a Python with funasr installed
+model = "D:/models/SenseVoiceSmall"
+
+[backends.funasr-fa]
+python = "C:/python311/python.exe"
+```
+
+`tts = "placeholder"`, `voice_design = "placeholder"` and `asr = "none"` are placeholder backends: the pipeline runs end to end with no models installed, with a tone of suitable length standing in for each voice line.
+
+Voice files:
+
+| File | Contents |
+|---|---|
+| `voices/candidates/<char-id>_<n>.wav` + `voices/candidates.json` | Voice candidates and the text they read |
+| `voices/extra/` + `voices/extra.json` | Extra references in the same voice (`replay voice extra`; texts in `voice.extra_texts` in cast.yaml) |
+| `review/voice-pick.json` | Which candidate each character uses (written by the voice page; `voice.reference` in cast.yaml takes precedence) |
+| `build/voice_qa.json` | Per-line QA: similarity, recognized text, duration, pass/fail |
+
 ## Imported logs
 
 `replay import` merges every export in `logs/raw/` (txt, zip) into `logs/events.jsonl`, one event per line:
