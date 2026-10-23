@@ -1,0 +1,27 @@
+# Cast sheet. Character IDs are ASCII; name is the display name, per language.
+characters:
+  narrator:
+    name: { en: Narrator, zh-CN: 旁白 }
+    kind: narrator
+    voice: { gender: male, design: mature, steady male narrator with a natural pace }
+
+  gm:
+    name: { en: GM, zh-CN: GM }
+    kind: gm
+    voice: { gender: male, design: relaxed, friendly game master }
+
+  hero:
+    name: { en: Arlo, zh-CN: 阿洛 }
+    kind: pc
+    player: Kobayashi
+    color: "#c9a23a"
+    appearance: a young adventurer around twenty, short brown hair, worn leather armor, a lantern at the belt
+    expressions:
+      calm: calm expression
+      wary: slight frown, alert eyes
+      surprised: wide eyes, mouth slightly open
+    default_expression: calm
+    face_rules:
+      - [surprised, "surpris|startl|shock"]
+      - [wary, "whisper|wary|careful"]
+    voice: { gender: male, design: clear, energetic young man around twenty }

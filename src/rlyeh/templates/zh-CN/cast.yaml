@@ -1,0 +1,27 @@
+# 角色表。角色 ID 只用 ASCII；name 是显示名，可以按语言分别写。
+characters:
+  narrator:
+    name: { zh-CN: 旁白, en: Narrator }
+    kind: narrator
+    voice: { gender: male, design: 成熟沉稳的男声，叙述节奏自然 }
+
+  gm:
+    name: { zh-CN: GM, en: GM }
+    kind: gm
+    voice: { gender: male, design: 轻松随和的主持人声音 }
+
+  hero:
+    name: { zh-CN: 阿洛, en: Arlo }
+    kind: pc
+    player: 小林
+    color: "#c9a23a"
+    appearance: 二十岁左右的年轻冒险者，棕色短发，旧皮甲，腰间挂着提灯
+    expressions:
+      平静: 神情平静
+      警惕: 眉头微皱，眼神警觉
+      惊讶: 眼睛睁大，嘴巴微张
+    default_expression: 平静
+    face_rules:
+      - [惊讶, "惊|吓"]
+      - [警惕, "压低声音|警惕|小心"]
+    voice: { gender: male, design: 二十岁左右的青年男声，干净有朝气 }

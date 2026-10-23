@@ -1,0 +1,41 @@
+spec = "0.1"
+
+[project]
+id = "{id}"                       # 只用 ASCII，会出现在文件名里
+title = "{title}"
+language = "zh-CN"                # 剧本语言：zh-CN / en
+
+# 场外玩家 → 他们扮演的角色 ID（见 cast.yaml）；GM 写成 { role = "gm" }
+[players]
+"GM" = { role = "gm" }
+
+[harness]
+default = "claude-code"           # claude-code | codex | dsh
+
+# 给 harness 设上限，别让它默认用最贵的模型和最高推理强度
+# [harness.codex]
+# model = "gpt-6.1-sol"
+# effort = "low"
+
+[backends]
+import = "fvtt"
+image = "manual"
+tts = "drama3"
+asr = "sensevoice"
+align = "funasr-fa"
+music = "manual"
+
+[art]
+style = "日系动画风格，干净的赛璐璐上色，低饱和暗色调"
+always_append = "不要假细节假纹理"
+
+# 只改送进 TTS 的读法，不改字幕，例如 "d4" = "滴四"
+[readings]
+
+# 消音词在 TTS 里怎么念，例如 "sb" = "傻逼"
+[spoken]
+
+[render]
+width = 1920
+height = 1080
+fps = 60

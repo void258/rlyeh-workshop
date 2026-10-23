@@ -6,7 +6,7 @@
 
 把 FVTT 等平台导出的跑团记录交给拉莱耶工坊，由你常用的 AI（Claude Code、Codex、DeepSeek Harness）来润色剧本、设计角色、写美术和音乐提示词；拉莱耶工坊负责配音、质检、消音、立绘后处理、BGM、音效，最后生成一个能在浏览器里播放的视觉小说，以及逐帧渲染出来的视频。选声线、审美术、逐句审听这些需要品味的环节，留给你在图形界面里把关。
 
-> **状态：M0（规格阶段）。** 目前仓库里只有规格文档，还没有可运行的代码。欢迎在 Issues 里讨论设计。
+> **状态：M1 进行中。** 规格（M0）已定稿；目前能用的是剧本解析、校验（`replay lint`）和台词 ID（`replay ids`），配音、美术、渲染等流水线还在搬进来。欢迎在 Issues 里讨论设计。
 
 ## 它能做什么
 
@@ -45,6 +45,17 @@
 | M2 | MCP 服务与流程手册，接入三家 harness |
 | M3 | Studio 图形界面（中英双语） |
 | M4 | 发布 0.1（先 Windows） |
+
+## 开发
+
+需要 Python 3.11+ 和 [uv](https://docs.astral.sh/uv/)。
+
+```bash
+uv sync                      # 安装依赖
+uv run replay init my-replay # 新建一个示例项目
+uv run replay lint -C my-replay
+uv run pytest                # 跑测试
+```
 
 ## 授权
 

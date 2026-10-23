@@ -1,0 +1,41 @@
+spec = "0.1"
+
+[project]
+id = "{id}"                       # ASCII only; used in file names
+title = "{title}"
+language = "en"                   # script language: zh-CN / en
+
+# OOC players → the character ID they play (see cast.yaml); write the GM as { role = "gm" }
+[players]
+"GM" = { role = "gm" }
+
+[harness]
+default = "claude-code"           # claude-code | codex | dsh
+
+# Cap the harness so it doesn't default to the most expensive model at maximum effort
+# [harness.codex]
+# model = "gpt-6.1-sol"
+# effort = "low"
+
+[backends]
+import = "fvtt"
+image = "manual"
+tts = "drama3"
+asr = "whisper"
+align = "whisperx"
+music = "manual"
+
+[art]
+style = "Japanese anime style, clean cel shading, muted dark palette"
+always_append = "no fake details or fake textures"
+
+# Changes only what the TTS reads, never the subtitles, e.g. "d4" = "dee four"
+[readings]
+
+# How bleeped words are spoken before being beeped
+[spoken]
+
+[render]
+width = 1920
+height = 1080
+fps = 60

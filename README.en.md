@@ -6,7 +6,7 @@
 
 Hand R'lyeh Workshop a session log exported from Foundry VTT or a similar platform. Your usual AI agent (Claude Code, Codex, or DeepSeek Harness) polishes the script, designs the characters, and writes the art and music prompts. R'lyeh Workshop handles voice acting, QA, profanity bleeping, sprite post-processing, BGM and sound effects, then produces a visual novel that plays in the browser plus a frame-by-frame rendered video. The steps that need taste — picking voices, approving art, listening line by line — stay with you, in a graphical interface.
 
-> **Status: M0 (specification).** The repository currently contains only the specification; there is no runnable code yet. Design discussion is welcome in Issues.
+> **Status: M1 in progress.** The specification (M0) is final. What works today is script parsing, linting (`replay lint`) and line IDs (`replay ids`); the voice, art and rendering pipeline is being brought over. Design discussion is welcome in Issues.
 
 ## What it does
 
@@ -45,6 +45,17 @@ All three share the same `replay` CLI and the same MCP server. See [Agent integr
 | M2 | MCP server and playbooks for the three harnesses |
 | M3 | Studio GUI (Chinese and English) |
 | M4 | Release 0.1 (Windows first) |
+
+## Development
+
+Requires Python 3.11+ and [uv](https://docs.astral.sh/uv/).
+
+```bash
+uv sync                      # install dependencies
+uv run replay init my-replay # create a sample project
+uv run replay lint -C my-replay
+uv run pytest                # run the tests
+```
 
 ## License
 
