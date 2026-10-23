@@ -28,10 +28,10 @@
 | `replay art jobs\|run\|compose\|check` | 写起步提示词 / 生成（`--marked` 重画审核打回的）/ 重新合成差分 / 检查和总览图 |
 | `replay music gen\|check\|pick` | 生成 BGM / 查人声 / 选定一版 |
 | `replay sfx [--list]` | 生成音效（内置合成 + sfx.yaml）/ 列出音效和别名 |
-| `replay build` | 打包播放器数据 |
+| `replay build` | 打包播放器（`build/player/`），列出缺的素材 |
 | `replay preview` | 启动本地预览（播放器、审核页） |
 | `replay render [--chapter N] [--from ID --seconds S] [--remix]` | 逐帧渲染 / 只重新混音 |
-| `replay encode <预设>` | 压制：`master` / `share` / `compat` |
+| `replay encode <预设>` | 压制：`share` / `compat` / 自己在 `[encode.*]` 加的（`master` 就是渲染出的成片） |
 | `replay mcp` | 以 stdio 方式运行 MCP 服务 |
 | `replay export-agent <claude-code\|codex\|dsh>` | 把流程手册和 MCP 配置导出到项目里 |
 

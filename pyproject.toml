@@ -16,6 +16,9 @@ dependencies = [
     "pillow>=10",
 ]
 
+[project.optional-dependencies]
+render = ["playwright>=1.50"]           # replay render：无头浏览器逐帧截图
+
 [project.scripts]
 replay = "rlyeh.cli:main"
 

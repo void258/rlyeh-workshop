@@ -26,7 +26,7 @@ TOKENS_PER_SECOND = 25            # semantic token 大约每秒 25 个：4000 �
 class YuE2Comfy:
     info = BackendInfo(id='yue2-comfyui', kind='music', needs_gpu=True, vram_gb=12, license='CC BY-NC 4.0',
                        license_url='https://creativecommons.org/licenses/by-nc/4.0/', commercial_use=False,
-                       attribution='Music generated with YuE2 (CC BY-NC 4.0)')
+                       attribution='Music generated with YuE2 (CC BY-NC 4.0)', credit='YuE2 (m-a-p)')
     generates = True
     can_plan = True
 

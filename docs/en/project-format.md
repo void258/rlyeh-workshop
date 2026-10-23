@@ -31,7 +31,7 @@ my-replay/
 │   ├── bgm/<cue-id>.flac          chosen BGM; takes/ holds the generated takes
 │   └── sfx/<sfx-id>.wav           sound effects; index.json lists names, aliases and durations
 ├── review/              human review results (written by Studio, read by the AI)
-├── build/               regenerable outputs: player data, rendered frames, final videos
+├── build/               regenerable outputs: player/ the player, video/ rendered pictures and final videos
 └── .rlyeh/              state and caches: state.json, task records, logs
 ```
 
@@ -53,7 +53,8 @@ spec = "0.1"                      # spec version
 
 [project]
 id = "yangjiao"                   # ASCII, used in file names
-title = "Shadow of the Demon Lord · Ram's Horn Inn"
+title = "Shadow of the Demon Lord"
+subtitle = "Ram's Horn Inn"       # optional: subtitle on the title screen and in the credits
 language = "zh-CN"                # script language: zh-CN / en
 session_dates = ["2022-07-20", "2022-07-21"]
 
@@ -107,6 +108,19 @@ always_append = "no fake details or fake textures"   # appended to every image p
 width = 1920
 height = 1080
 fps = 60
+browser = "chromium"              # chromium (bundled with playwright) | msedge | chrome
+jobs = 2                          # chapters rendered at the same time
+
+[player]
+title_bg = "Inn exterior"         # title screen background; defaults to the script's first background (with its variants)
+title_bgm = "title"               # title screen cue; defaults to the cue called title, or the first one
+die = 20                          # die size: with 20, natural 20 / 1 show NATURAL 20 / 1; 0 hides it
+# hit_sounds = [["hit_slash", "sword|dagger"], ["burn", "fire"]]   damage sounds by the previous roll's skill; first match wins
+
+[credits]
+staff = [["Script & staging", "Aoi"]]   # extra sections: [heading, name, name...]
+end = "To be continued"           # last line of the credits, "Fin" by default
+background = "Face tree"          # credits background, the last background by default
 
 [mix]
 voice_rms = 0.1                   # RMS each voice line is normalized to
@@ -120,8 +134,11 @@ codec = "h264"
 quality = 19
 
 [encode.share]
-codec = "av1"
-quality = 37                      # NVENC cq; mapped to an SVT-AV1 crf when encoding on CPU
+codec = "av1"                     # h264 | hevc | av1
+quality = 37                      # NVENC cq; mapped to a crf when encoding on CPU
+encoder = "auto"                  # auto | nvenc | qsv | amf | cpu
+audio = "copy"                    # copy | aac (then audio_bitrate = "160k")
+# height = 720                    # scale down to this height
 ```
 
 ### Import settings
@@ -243,6 +260,7 @@ characters:
       scale: 1.0                   # sprites fill their canvas; shorter characters need a smaller scale
       head: [0.55, 0.115]          # avatar crop center
       mouth: [0.542, 0.13]         # mouth position (effects like breath-fire start here)
+      state_faces: { ghost: ghost }  # expression used in a state such as [[enter: ... | ghost]]
     voice:
       gender: male
       design: gruff, hoarse middle-aged orc voice, loud and overbearing

@@ -18,17 +18,18 @@ a.card b{font-size:18px;color:var(--gold)}
 <main>
   <h1 id="title">R'lyeh Workshop</h1>
   <p id="sub"></p>
+  <a class="card" href="/player"><b data-i="player"></b><br><span data-i="playerD"></span></a>
   <a class="card" href="/voices"><b data-i="voices"></b><br><span data-i="voicesD"></span></a>
   <a class="card" href="/review/voice"><b data-i="review"></b><br><span data-i="reviewD"></span></a>
   <a class="card" href="/review/art"><b data-i="art"></b><br><span data-i="artD"></span></a>
   <a class="card" href="/review/music"><b data-i="music"></b><br><span data-i="musicD"></span></a>
 </main>
 <script>
-const T={zh:{sub:'拉莱耶工坊 · 本地预览与审核',voices:'选声线',voicesD:'试听每个角色的候选声线，选定一段作为配音的固定参考。',
+const T={zh:{sub:'拉莱耶工坊 · 本地预览与审核',player:'播放器',playerD:'打开 replay build 打包好的视觉小说，可以从任意一句开始看。',voices:'选声线',voicesD:'试听每个角色的候选声线，选定一段作为配音的固定参考。',
 review:'逐句审听',reviewD:'连续播放配音、看识别质检结果，把不满意的句子标成重做。',
 art:'美术审核',artD:'逐张看立绘、表情差分、背景、CG 和道具，通过或打回并写上修改意见。',
 music:'BGM 试听',musicD:'每段曲子试听生成的几版，看有没有唱出词，选定一版。'},
-en:{sub:"R'lyeh Workshop · local preview and review",voices:'Pick voices',voicesD:"Audition each character's voice candidates and choose one as the fixed reference.",
+en:{sub:"R'lyeh Workshop · local preview and review",player:'Player',playerD:'Open the visual novel built by replay build; start from any line.',voices:'Pick voices',voicesD:"Audition each character's voice candidates and choose one as the fixed reference.",
 review:'Line review',reviewD:'Play voice lines in sequence, check speech-recognition QA, and mark lines for redo.',
 art:'Art review',artD:'Go through sprites, expressions, backgrounds, CGs and items; approve or reject with a note.',
 music:'Music',musicD:'Audition the takes of each cue, see whether vocals slipped in, and choose one.'}};

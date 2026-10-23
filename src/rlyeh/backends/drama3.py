@@ -29,7 +29,7 @@ SESSION = {'cpu_expert_layers': '0', 'context_length': '4096', 'disk_experts': '
 class Drama3:
     # 授权条款以 Fish Audio 官方为准（M1 接入时核实）：要求署名，只能克隆本人同意的声音
     info = BackendInfo(id='drama3', kind='tts', needs_gpu=True, vram_gb=6, license='Fish Audio Community License',
-                       attribution='Built with Fish Audio', clone_requires_consent=True)
+                       attribution='Built with Fish Audio', clone_requires_consent=True, credit='Fish Audio Drama 3')
 
     def __init__(self, cfg, project):
         self.cfg = cfg

@@ -31,7 +31,7 @@ my-replay/
 │   ├── bgm/<曲目ID>.flac         选定的 BGM；takes/ 里是生成的各个版本
 │   └── sfx/<音效ID>.wav          音效；index.json 是名字、别名、时长的索引
 ├── review/              人工审核结果（Studio 写，AI 读）
-├── build/               可再生成的产物：播放器数据、渲染画面、成片
+├── build/               可再生成的产物：player/ 播放器、video/ 渲染画面和成片
 └── .rlyeh/              状态与缓存：state.json、任务记录、日志
 ```
 
@@ -53,7 +53,8 @@ spec = "0.1"                      # 规格版本
 
 [project]
 id = "yangjiao"                   # ASCII，用于文件名
-title = "魔王之影 · 羊角旅馆"
+title = "魔王之影"
+subtitle = "羊角旅馆"             # 可选：标题画面、片尾的副标题
 language = "zh-CN"                # 剧本语言：zh-CN / en
 session_dates = ["2022-07-20", "2022-07-21"]
 
@@ -107,6 +108,19 @@ always_append = "不要假细节假纹理"  # 每条生图提示词都会加上
 width = 1920
 height = 1080
 fps = 60
+browser = "chromium"              # chromium（playwright 自带）| msedge | chrome
+jobs = 2                          # 几章同时渲染
+
+[player]
+title_bg = "旅馆外观"              # 标题画面的背景；不写用剧本里第一个背景（连同它的变体）
+title_bgm = "title"               # 标题画面的曲目；不写用叫 title 的那段或第一段
+die = 20                          # 骰子面数：20 时掷出 20 / 1 显示 NATURAL 20 / 1；0 不显示
+# hit_sounds = [["hit_slash", "剑|匕首"], ["burn", "火"]]   伤害音效：按前一次掷骰的技能名挑，先中先用
+
+[credits]
+staff = [["剧本整理 · 演出", "Aoi"]]   # 额外的栏目：[标题, 名字, 名字…]
+end = "未完待续"                   # 片尾最后一行，默认「完」
+background = "人面巨树"            # 片尾背景，默认最后一个背景
 
 [mix]
 voice_rms = 0.1                   # 每句配音归一到的 RMS
@@ -120,8 +134,11 @@ codec = "h264"
 quality = 19
 
 [encode.share]
-codec = "av1"
-quality = 37                      # NVENC cq；CPU 编码时自动换算成 SVT-AV1 crf
+codec = "av1"                     # h264 | hevc | av1
+quality = 37                      # NVENC cq；CPU 编码时自动换算成 crf
+encoder = "auto"                  # auto | nvenc | qsv | amf | cpu
+audio = "copy"                    # copy | aac（再写 audio_bitrate = "160k"）
+# height = 720                    # 缩小到这个高度
 ```
 
 ### 导入相关的配置
@@ -243,6 +260,7 @@ characters:
       scale: 1.0                   # 立绘都画满画框，矮个子要缩小
       head: [0.55, 0.115]          # 头像裁剪中心
       mouth: [0.542, 0.13]         # 嘴的位置（喷火之类的特效从这里出）
+      state_faces: { ghost: 亡魂 }  # 【登场：…｜灵体】之类的状态下换用的表情
     voice:
       gender: male
       design: 粗犷沙哑的中年兽人男声，嗓门大，说话带着蛮横劲

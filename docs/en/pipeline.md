@@ -123,8 +123,13 @@ The pipeline is a series of **stages**. Each stage lists what it reads, what it 
 
 ## 10. Player
 
-- **Tools**: package script, cast and assets into player data; convert images to WebP; generate avatars.
-- Player features: title screen, chapter cards, scene titles, sprite staging, tone-driven expressions, OOC chat feed, rolls / damage / contests / battle banners, CGs, items, effects, credits, backlog, auto-play, skip, start from any line.
+- **Tools**: `replay build` packages script, cast and assets into `build/player/` (open `index.html` in a browser, or `/player` in `replay preview`): images become WebP and avatars are cropped; audio is hard-linked or copied, never transcoded; directions are rewritten to their canonical English names and values, and character names to character IDs. Missing voice lines, images, sounds and cues are listed.
+- Player features: title screen, chapter cards, scene titles, sprite staging, tone-driven expressions, OOC chat feed, rolls / damage / contests / battle banners, CGs, items, effects, credits, backlog, auto-play, skip, start from any line. The interface follows the project language (Chinese / English).
+- **Defaults**:
+  - Credits are generated: game master, players and their characters, the cast, any sections in `[credits] staff`, then art, voice design, voices, music (with license, e.g. YuE2's CC BY-NC 4.0), sound effects and session logs according to the backends actually used; attribution a backend requires (e.g. "Built with Fish Audio") always appears.
+  - The hit sound for damage follows the skill of the previous roll (sword, dagger → slash; hammer, pick → heavy; fire → burn; club, staff, sling → blunt), heavy otherwise; change it in `[player] hit_sounds`.
+  - Breath fire comes out of the mouth of the most recent speaker who has `sprite.mouth` in cast.yaml.
+  - Background variants set the atmosphere: fog and mist bring fog, warm / dawn / dusk bring warm motes, dormant brings spores, and siege thumps the door every few seconds with dust falling from the beams (sounds marked `ambient: siege` in sfx.yaml join in).
 
 ## 11. Render
 
@@ -133,6 +138,8 @@ The pipeline is a series of **stages**. Each stage lists what it reads, what it 
   - Advance 1/fps seconds, capture, hand to ffmpeg. Each frame depends only on the timeline; nothing is dropped, and every render is identical.
   - No audio plays in the browser: the player logs when each voice line, effect and BGM cue happens, and the mix is built offline from that log (BGM ducked under speech, crossfaded loop seams, loudness normalized to -16 LUFS).
   - Chapters render in parallel and are concatenated (chapters are separated by black, so there's no seam).
+- **Commands**: `replay render` renders everything; `--from <line-id> --seconds 60` renders a preview stretch; `--chapter 2` one chapter; `--remix` redoes only the mix. Output in `build/video/`: `<name>.mp4` final, `<name>_video.mp4` silent picture, `<name>_events.json` event log, `<name>_audio.wav` mix.
+- Requires playwright (`uv sync --extra render` or `pip install "rlyeh-workshop[render]"`, then `playwright install chromium`) and ffmpeg. `[render] browser = "msedge"` or `"chrome"` uses an installed browser instead.
 - **Defaults**: **never screen-record in real time** — it drops frames and takes as long as the video. For audio-only changes use `replay render --remix` without re-rendering frames.
 - **Human** (optional): watch the cut and send problems back to the relevant stage.
 
@@ -140,8 +147,8 @@ The pipeline is a series of **stages**. Each stage lists what it reads, what it 
 
 | Preset | Use | Defaults (measured on 40 min of 1080p60) |
 |---|---|---|
-| `master` | Master | H.264 NVENC cq19, ~4.6 GB |
-| `share` | Sharing | Tuned AV1 NVENC cq37 (32-frame lookahead, 4 B-frames as references, temporal filtering, 10 s keyframes), ~500 MB; or CPU SVT-AV1 crf38, ~360 MB |
-| `compat` | Older devices | HEVC, ~1 GB |
+| `master` | Master: the file `replay render` writes | H.264 NVENC cq19, ~4.6 GB |
+| `share` | Sharing | Tuned AV1 NVENC cq37 (32-frame lookahead, 4 B-frames as references, temporal filtering, 10 s keyframes), ~500 MB; or CPU SVT-AV1 crf38, ~360 MB; audio copied |
+| `compat` | Older devices, the web | H.264 cq26, AAC 160k |
 
-The tools detect hardware encoders (NVENC / AMF / QSV) and fall back to CPU.
+`replay encode share` → `build/video/<name>_share.mp4`. The tools detect hardware encoders (NVENC / QSV / AMF), try each on a short clip first, and fall back to CPU. Presets can be changed or added under `[encode.<name>]` (see [Project format](project-format.md#replaytoml)).

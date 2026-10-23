@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>R'lyeh Workshop</title>
+<link rel="stylesheet" href="player.css">
+</head>
+<body>
+<div id="stage">
+  <!-- 会震动的画面层：背景、氛围粒子、立绘、CG、调色 -->
+  <div id="world">
+    <div id="bg"></div>
+    <canvas id="atmo" width="1920" height="1080"></canvas>
+    <div id="chars"></div>
+    <div id="cg"><div class="cg-img"></div><div class="bar top"></div><div class="bar bottom"></div></div>
+    <div id="cold"></div>
+    <div id="vignette"></div>
+  </div>
+  <div id="flash"></div>
+  <canvas id="fxc" width="1920" height="1080"></canvas>
+  <div id="hud"></div>
+
+  <div id="ui">
+    <div id="scene-title"></div>
+    <div id="combat"></div>
+    <div id="mode-chip"></div>
+    <div id="chat"><div class="chat-head"><i></i><span data-i="oocHead"></span></div><div class="chat-list"></div></div>
+    <div id="box" class="empty">
+      <i class="orn tl"></i><i class="orn tr"></i><i class="orn bl"></i><i class="orn br"></i>
+      <div class="nameplate"><span class="name"></span><span class="sub"></span></div>
+      <div class="narmark">❖</div>
+      <div class="text"></div>
+      <div class="next"></div>
+    </div>
+    <div id="controls">
+      <button data-act="auto" data-i="auto"></button>
+      <button data-act="skip" data-i="skip"></button>
+      <button data-act="log" data-i="logBtn"></button>
+      <button data-act="hide" data-i="hide"></button>
+      <button data-act="mute" data-i="mute"></button>
+      <button data-act="full" data-i="full"></button>
+      <button data-act="title" data-i="titleBtn"></button>
+    </div>
+    <div id="progress"><i></i></div>
+  </div>
+
+  <div id="card"></div>
+  <div id="credits"></div>
+  <div id="log"><div class="log-head"><b data-i="log"></b><span data-i="logHint"></span></div><div class="log-list"></div></div>
+
+  <div id="title">
+    <div class="t-main">
+      <div class="t-kicker"></div>
+      <h1 class="t-logo"></h1>
+      <div class="t-sub"><i></i><span></span><i></i></div>
+    </div>
+    <div class="t-menu">
+      <button data-go="start" data-i="start"></button>
+      <button data-go="continue" data-i="cont" hidden></button>
+    </div>
+    <div class="t-load"><i></i><span></span></div>
+    <div class="t-foot"></div>
+  </div>
+</div>
+<script src="data.js"></script>
+<script src="player.js"></script>
+</body>
+</html>

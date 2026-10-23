@@ -14,7 +14,7 @@ LANG = {'zh-CN': 'Chinese', 'en': 'English'}
 
 class Qwen3TTS:
     info = BackendInfo(id='qwen3-tts', kind='voice_design', needs_gpu=True, vram_gb=5,
-                       license='', license_url='https://huggingface.co/Qwen')     # 授权 M1 接入时核实
+                       license='', license_url='https://huggingface.co/Qwen', credit='Qwen3-TTS VoiceDesign')     # 授权 M1 接入时核实
 
     def __init__(self, cfg, project):
         self.cfg = cfg

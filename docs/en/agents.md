@@ -28,10 +28,10 @@ Integration has three layers, shared by all three:
 | `replay art jobs\|run\|compose\|check` | Write starter prompts / generate (`--marked` redraws rejected images) / recomposite expressions / check and overview sheets |
 | `replay music gen\|check\|pick` | Generate BGM / detect vocals / choose a take |
 | `replay sfx [--list]` | Build sound effects (built-in + sfx.yaml) / list sounds and aliases |
-| `replay build` | Package player data |
+| `replay build` | Build the player (`build/player/`) and list missing assets |
 | `replay preview` | Start the local preview (player, review pages) |
 | `replay render [--chapter N] [--from ID --seconds S] [--remix]` | Frame-by-frame render / remix audio only |
-| `replay encode <preset>` | Encode: `master` / `share` / `compat` |
+| `replay encode <preset>` | Encode: `share` / `compat` / your own `[encode.*]` (`master` is the rendered file itself) |
 | `replay mcp` | Run the MCP server over stdio |
 | `replay export-agent <claude-code\|codex\|dsh>` | Export the playbook and MCP config into the project |
 

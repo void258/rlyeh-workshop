@@ -58,7 +58,8 @@ INSTRUCTION = {
 
 
 class CodexImage:
-    info = BackendInfo(id='codex', kind='image', license='OpenAI Terms of Use', license_url='https://openai.com/policies/terms-of-use')
+    info = BackendInfo(id='codex', kind='image', license='OpenAI Terms of Use', license_url='https://openai.com/policies/terms-of-use',
+                       credit='Codex image_gen')
     edits = True                 # 能拿底图改图
     writes = True
 

@@ -6,7 +6,7 @@ import re
 import sys
 from importlib import resources
 
-from . import SPEC_VERSION, __version__, art, i18n, importers, music, sfx, voice
+from . import SPEC_VERSION, __version__, art, encode, i18n, importers, music, player, render, sfx, voice
 from .backends import BackendError
 from .backends.worker import WorkerError
 from .i18n import t
@@ -248,6 +248,35 @@ def cmd_music(args):
     return 0
 
 
+def cmd_build(args):
+    proj = _project(args)
+    res = player.build(proj)
+    lines = [t('cli.build_done', path=res['path'], chapters=res['chapters'], steps=res['steps'])]
+    for k, items in res['missing'].items():
+        if items:
+            lines.append(t('cli.build_missing', what=t('missing.' + k), n=len(items),
+                           items='、'.join(items[:12]) + ('…' if len(items) > 12 else '')))
+    _out(args, dict(ok=True, **res), '\n'.join(lines))
+    return 0
+
+
+def cmd_render(args):
+    proj = _project(args)
+    chapters = [int(c) for c in args.chapter.split(',')] if args.chapter else None
+    res = render.render(proj, args.start, args.seconds, chapters, args.remix, args.name, _progress(args))
+    _out(args, dict(ok=True, **res), t('cli.render_done', video=res['video'], minutes=round(res['seconds'] / 60, 1),
+                                        took=round(res['took'] / 60, 1)))
+    return 0
+
+
+def cmd_encode(args):
+    proj = _project(args)
+    out = encode.encode(proj, args.preset, args.src, _progress(args))
+    rel = out.relative_to(proj.root).as_posix()
+    _out(args, dict(ok=True, path=rel, bytes=out.stat().st_size), t('cli.encode_done', path=rel, mb=round(out.stat().st_size / 2 ** 20, 1)))
+    return 0
+
+
 def cmd_preview(args):
     proj = _project(args)
     from .preview import serve
@@ -363,6 +392,20 @@ def build_parser():
     for q in ms.choices.values():
         q.set_defaults(func=cmd_music)
 
+    p = sub.add_parser('build', parents=[common], help='build the player / 打包播放器')
+    p.set_defaults(func=cmd_build)
+    p = sub.add_parser('render', parents=[common], help='render the video frame by frame / 逐帧渲染成视频')
+    p.add_argument('--from', dest='start', help='start at this line ID / 从这句开始')
+    p.add_argument('--seconds', type=float, default=0, help='render only this long / 只渲染这么多秒')
+    p.add_argument('--chapter', help='chapter numbers, comma separated / 只渲染这几章')
+    p.add_argument('--remix', action='store_true', help='remix the audio only / 只重新混音')
+    p.add_argument('--name', help='output name / 输出文件名')
+    p.set_defaults(func=cmd_render)
+    p = sub.add_parser('encode', parents=[common], help='encode a release version / 压制')
+    p.add_argument('preset', help='share | compat | a preset in [encode.*] / 预设')
+    p.add_argument('--src', help='input video, default build/video/<id>.mp4 / 输入视频')
+    p.set_defaults(func=cmd_encode)
+
     p = sub.add_parser('bleep', parents=[common], help='bleep profanity / 消音')
     p.set_defaults(func=cmd_bleep)
     p = sub.add_parser('preview', parents=[common], help='local preview and review pages / 本地预览与审核页')
@@ -386,7 +429,8 @@ def main(argv=None):
     except ProjectError as e:
         _out(args, dict(ok=False, error=str(e)), str(e))
         return 2
-    except (voice.VoiceError, art.ArtError, sfx.SfxError, music.MusicError, BackendError, WorkerError) as e:
+    except (voice.VoiceError, art.ArtError, sfx.SfxError, music.MusicError, render.RenderError, encode.EncodeError,
+            BackendError, WorkerError) as e:
         _out(args, dict(ok=False, error=str(e)), t('cli.error', err=e))
         return 3
 

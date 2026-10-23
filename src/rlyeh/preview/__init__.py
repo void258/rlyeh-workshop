@@ -5,6 +5,7 @@
   /review/voice      逐句审听：连续播放、看质检、标重做（写 review/voice-review.json）
   /review/art        美术审核：逐张通过或打回（写 review/art-review.json）
   /review/music      BGM 试听：每段曲子选一版（写 review/music-review.json，复制成 audio/bgm/<曲目ID>）
+  /player            播放器（replay build 打包的 build/player/）
   /files/<路径>      项目里的文件（音频、图片），不缓存，重做后马上看到、听到新版本
 """
 import http.server
@@ -134,7 +135,11 @@ def make_handler(project):
 
         def do_GET(self):
             path = urllib.parse.unquote(urllib.parse.urlparse(self.path).path)
-            if path in PAGES:
+            if path in ('/player', '/player/'):             # replay build 打出来的播放器
+                self.send_response(302)
+                self.send_header('Location', '/files/build/player/index.html')
+                self.end_headers()
+            elif path in PAGES:
                 self._send(200, (STATIC / PAGES[path]).read_bytes(), 'text/html; charset=utf-8')
             elif path == '/api/voices':
                 self._json(voices_data(project))
@@ -151,7 +156,8 @@ def make_handler(project):
                     return
                 ctype = {'.wav': 'audio/wav', '.flac': 'audio/flac', '.mp3': 'audio/mpeg', '.ogg': 'audio/ogg',
                          '.png': 'image/png', '.webp': 'image/webp', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg',
-                         '.json': 'application/json'}.get(target.suffix.lower(), 'application/octet-stream')
+                         '.json': 'application/json', '.html': 'text/html; charset=utf-8',
+                         '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8'}.get(target.suffix.lower(), 'application/octet-stream')
                 self._send(200, target.read_bytes(), ctype)
             else:
                 self._send(404, b'not found', 'text/plain')

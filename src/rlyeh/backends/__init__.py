@@ -25,6 +25,7 @@ class BackendInfo:
     commercial_use: bool | None = None
     attribution: str | None = None
     clone_requires_consent: bool = False
+    credit: str = ''                  # 片尾字幕里写的名字；空的不上片尾（占位、手动）
 
 
 def _registry():
