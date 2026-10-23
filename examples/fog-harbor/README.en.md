@@ -44,6 +44,14 @@ uv run replay encode share -C examples/fog-harbor  # a small version for sharing
 
 The video ends up in `build/video/fog-harbor.mp4`.
 
+## Hand it to your AI
+
+```bash
+uv run replay export-agent claude-code -C examples/fog-harbor   # or codex, dsh, all
+```
+
+With the playbook, skills and MCP config in place, start your AI in `examples/fog-harbor` and ask it to "check what this project still needs, following AGENTS.md". It takes tasks with `replay next`: work meant for it (writing prompts, reading QA reports) it does by the skills, tools it runs, and decisions that are yours (picking voices, reviewing art, choosing music) it hands you as review page links. Details per harness are in [Agent integration](../../docs/en/agents.md#exporting-to-each-harness).
+
 ## Switching to real backends
 
 | Capability | Placeholder | Real backend |

@@ -6,7 +6,7 @@
 
 把 FVTT 等平台导出的跑团记录交给拉莱耶工坊，由你常用的 AI（Claude Code、Codex、DeepSeek Harness）来润色剧本、设计角色、写美术和音乐提示词；拉莱耶工坊负责配音、质检、消音、立绘后处理、BGM、音效，最后生成一个能在浏览器里播放的视觉小说，以及逐帧渲染出来的视频。选声线、审美术、逐句审听这些需要品味的环节，留给你在图形界面里把关。
 
-> **状态：M2 进行中。** 规格（M0）已定稿；目前能用的是导入跑团记录（`replay import`）、剧本解析和校验（`replay lint`、`replay ids`）、配音一整条线（`replay voice design / pick / build / qa / redo`、`replay bleep`）、美术（`replay art jobs / run / compose / check`，Codex 生图、表情差分合成）、音效（`replay sfx`）、BGM（`replay music gen / check / pick`，YuE2 先找无人声乐谱再渲染）、播放器（`replay build`）、逐帧渲染和混音（`replay render`）、压制（`replay encode`）、环境检查（`replay doctor`），以及选声线、逐句审听、美术审核、BGM 试听这几个页面（`replay preview`）。命令行这一层（M1）已经完整，可以拿 [示例团](examples/fog-harbor/README.md) 从记录一路跑到成片。AI 接入（M2）已经有任务引擎（`replay next` / `replay done`）和 MCP 服务（`replay mcp`）；流程手册和一键导出给三家 harness 还在做。欢迎在 Issues 里讨论设计。
+> **状态：M2 进行中。** 规格（M0）已定稿；目前能用的是导入跑团记录（`replay import`）、剧本解析和校验（`replay lint`、`replay ids`）、配音一整条线（`replay voice design / pick / build / qa / redo`、`replay bleep`）、美术（`replay art jobs / run / compose / check`，Codex 生图、表情差分合成）、音效（`replay sfx`）、BGM（`replay music gen / check / pick`，YuE2 先找无人声乐谱再渲染）、播放器（`replay build`）、逐帧渲染和混音（`replay render`）、压制（`replay encode`）、环境检查（`replay doctor`），以及选声线、逐句审听、美术审核、BGM 试听这几个页面（`replay preview`）。命令行这一层（M1）已经完整，可以拿 [示例团](examples/fog-harbor/README.md) 从记录一路跑到成片。AI 接入（M2）已经有任务引擎（`replay next` / `replay done`）、MCP 服务（`replay mcp`）、中英流程手册，`replay export-agent` 一键导出给 Claude Code、Codex 和 DeepSeek Harness。欢迎在 Issues 里讨论设计。
 
 ## 它能做什么
 
@@ -23,9 +23,9 @@
 |---|---|
 | Claude Code | `CLAUDE.md` + `.claude/skills/` + `.mcp.json` |
 | Codex | `AGENTS.md` + `.agents/skills/` + `.codex/config.toml` |
-| DeepSeek Harness | `AGENTS.md` + `.agents/skills/` + MCP 客户端插件 |
+| DeepSeek Harness | `AGENTS.md` + `.agents/skills/` + `--patch .rlyeh/dsh-patch.yml` |
 
-三家共用同一个命令行工具 `replay` 和同一个 MCP 服务。详见 [AI 接入](docs/zh/agents.md)。
+在项目文件夹里运行 `replay export-agent <claude-code|codex|dsh|all>` 就会写好这些文件。三家共用同一个命令行工具 `replay` 和同一个 MCP 服务。详见 [AI 接入](docs/zh/agents.md)。
 
 ## 示例团
 

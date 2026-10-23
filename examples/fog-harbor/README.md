@@ -44,6 +44,14 @@ uv run replay encode share -C examples/fog-harbor  # 压一个体积小的分享
 
 成片在 `build/video/fog-harbor.mp4`。
 
+## 让 AI 接手
+
+```bash
+uv run replay export-agent claude-code -C examples/fog-harbor   # 或 codex、dsh、all
+```
+
+写好流程手册、技能和 MCP 配置后，在 `examples/fog-harbor` 里启动你的 AI，跟它说「按 AGENTS.md 看看这个项目还差什么」。它会用 `replay next` 领任务：该自己做的（写提示词、看质检）照技能做，该跑工具的去跑，该你拍板的（选声线、审美术、挑 BGM）把审核页地址给你。各家的细节见 [AI 接入](../../docs/zh/agents.md#导出到各家-harness)。
+
 ## 换成真的后端
 
 | 能力 | 占位 | 真的后端 |

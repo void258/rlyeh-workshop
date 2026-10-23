@@ -6,7 +6,7 @@ import re
 import sys
 from importlib import resources
 
-from . import SPEC_VERSION, __version__, art, doctor, encode, i18n, importers, music, player, render, sfx, tasks, voice
+from . import SPEC_VERSION, __version__, art, doctor, encode, harness, i18n, importers, music, player, render, sfx, tasks, voice
 from .backends import BackendError
 from .backends.worker import WorkerError
 from .player.theme import ThemeError
@@ -346,6 +346,21 @@ def cmd_done(args):
     return 0
 
 
+def cmd_export_agent(args):
+    proj = _project(args)
+    res = harness.export(proj, args.harness, args.lang, args.command, args.force)
+    lines = [t('cli.export_done', harnesses=', '.join(res['harnesses']), lang=res['lang'], command=' '.join(res['command']))]
+    for f in res['files']:
+        reason = t('cli.export_reason', reason=t('export.reason.' + f['reason'])) if f['reason'] else ''
+        lines.append(t('cli.export_file', action=t('export.action.' + f['action']), path=f['path'], reason=reason))
+    notes = [t(key, **kw) for key, kw in res['notes']] + [t('export.moved')]
+    lines += notes
+    kept = [f['path'] for f in res['files'] if f['action'] == 'kept']
+    _out(args, dict(ok=not kept, harnesses=res['harnesses'], lang=res['lang'], command=res['command'], files=res['files'],
+                    kept=kept, notes=notes), '\n'.join(lines))
+    return 0
+
+
 def cmd_mcp(args):
     from .mcp import serve
     serve(args.project)                              # 标准输出只放 MCP 协议消息
@@ -494,6 +509,11 @@ def build_parser():
     for q in ms.choices.values():
         q.set_defaults(func=cmd_music)
 
+    p = sub.add_parser('export-agent', parents=[common], help='playbook and MCP config for your AI / 导出流程手册和 MCP 配置')
+    p.add_argument('harness', nargs='*', help='claude-code | codex | dsh | all; default: [harness] default / 默认用 [harness] default')
+    p.add_argument('--command', help='command that starts replay, e.g. replay / 启动 replay 的命令')
+    p.add_argument('--force', action='store_true', help='overwrite playbook files you edited / 覆盖改过的手册文件')
+    p.set_defaults(func=cmd_export_agent)
     p = sub.add_parser('mcp', parents=[common], help='run the MCP server on stdio / 以 stdio 方式运行 MCP 服务')
     p.set_defaults(func=cmd_mcp)
     p = sub.add_parser('doctor', parents=[common], help='check the environment and backends / 检查环境和后端')
@@ -548,7 +568,7 @@ def main(argv=None):
         _out(args, dict(ok=False, error=str(e)), str(e))
         return 2
     except (voice.VoiceError, art.ArtError, sfx.SfxError, music.MusicError, render.RenderError, encode.EncodeError, ThemeError, tasks.TaskError,
-            BackendError, WorkerError) as e:
+            harness.ExportError, BackendError, WorkerError) as e:
         _out(args, dict(ok=False, error=str(e)), t('cli.error', err=e))
         return 3
 

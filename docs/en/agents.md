@@ -34,7 +34,7 @@ Integration has three layers, shared by all three:
 | `replay render [--chapter N] [--from ID --seconds S] [--remix]` | Frame-by-frame render / remix audio only |
 | `replay encode <preset>` | Encode: `share` / `compat` / your own `[encode.*]` (`master` is the rendered file itself) |
 | `replay mcp` | Run the MCP server over stdio |
-| `replay export-agent <claude-code\|codex\|dsh>` | Export the playbook and MCP config into the project |
+| `replay export-agent [claude-code\|codex\|dsh\|all]` | Export the playbook and MCP config into the project (default: `[harness] default`) |
 
 Every command supports `--json`; failures return a non-zero exit code and a structured error so the agent can decide what to do next.
 
@@ -64,27 +64,30 @@ Implementation: `replay mcp` uses only the standard library, one JSON-RPC messag
 
 ## Playbook
 
+Shipped inside the `rlyeh` package (`src/rlyeh/playbook/`), in Chinese and English:
+
 ```
 playbook/
 ├── zh/
-│   ├── AGENTS.md                 main guide: what the project is, how to take tasks, rules, when to ask a person
+│   ├── AGENTS.md                 main guide: what's in the project, taking tasks, rules, commands and MCP tools
 │   └── skills/
-│       ├── rlyeh-script/SKILL.md     script polishing
+│       ├── rlyeh-import/SKILL.md     importing logs, privacy
+│       ├── rlyeh-script/SKILL.md     writing and polishing the script, fixing lint errors
 │       ├── rlyeh-cast/SKILL.md       cast sheet
-│       ├── rlyeh-voice/SKILL.md      voices and voice QA
-│       ├── rlyeh-art/SKILL.md        art prompts
-│       ├── rlyeh-music/SKILL.md      cue list and BGM
-│       ├── rlyeh-theme/SKILL.md      player theme designed for the campaign
-│       └── rlyeh-render/SKILL.md     rendering and encoding
+│       ├── rlyeh-voice/SKILL.md      voices, voice QA, redos, bleeping
+│       ├── rlyeh-art/SKILL.md        image prompts, rejected images
+│       ├── rlyeh-music/SKILL.md      cue sheet, BGM, project sound effects
+│       ├── rlyeh-theme/SKILL.md      a player theme designed for the campaign
+│       └── rlyeh-render/SKILL.md     building, rendering, encoding
 └── en/                           same, in English
 ```
 
-Each `SKILL.md` has YAML front matter with at least `name` and `description` (all three harnesses require both):
+Agent tasks from `replay next` carry a `playbook` field naming one of these skills. Each `SKILL.md` has YAML front matter with `name` (lowercase letters, digits and hyphens, matching the folder) and `description` (when to use it); all three harnesses require both:
 
 ```markdown
 ---
 name: rlyeh-voice
-description: Use in a R'lyeh Workshop project when designing voices, synthesizing voice lines, reading the voice QA report or deciding on redos.
+description: Use in an R'lyeh Workshop project to design voices, synthesize voice lines, read the voice QA report, decide on reading fixes or redos, and bleep profanity.
 ---
 ```
 
@@ -92,60 +95,84 @@ Every "Default" in [Pipeline](pipeline.md) is written into the matching skill, e
 
 ## Exporting to each harness
 
-`replay export-agent` writes the playbook (Chinese or English, following the project language) and the MCP config into the project folder. Paths and formats below were checked against each harness's official docs or source:
+```bash
+replay export-agent              # uses [harness] default in replay.toml
+replay export-agent codex dsh    # name harnesses; all exports all three
+```
+
+This writes the playbook (Chinese or English, following the project language; `--lang` overrides it) and the MCP config into the project folder. Paths and formats were checked against each harness's official docs or source (Codex 0.159, dsh 0.1.5):
 
 | | Claude Code | Codex | DeepSeek Harness |
 |---|---|---|---|
-| Project instructions | `CLAUDE.md` (containing `@AGENTS.md`, importing the main guide) | `AGENTS.md` | `AGENTS.md` (reads `AGENTS.md` and `CLAUDE.md` by default) |
-| Skills | `.claude/skills/<name>/SKILL.md` | `.agents/skills/<name>/SKILL.md` | `.agents/skills/` or `.dsh/skills/` |
-| MCP config | `.mcp.json` | `.codex/config.toml` (the project must be trusted by Codex) | A YAML overlay passed with `--patch`, inserting the `@deepseek-ai/dsh-mcp-client` plugin |
-| Headless run | `claude -p` | `codex exec` | `dsh headless` |
-| Structured output | `--output-format stream-json` | to be verified in M2 | `--json` (newline-delimited run events) |
+| Project instructions | `CLAUDE.md` (one line, `@AGENTS.md`, importing the main guide) | `AGENTS.md` | `AGENTS.md` (reads both `AGENTS.md` and `CLAUDE.md`) |
+| Skills | `.claude/skills/<name>/SKILL.md` | `.agents/skills/<name>/SKILL.md` | `.agents/skills/` (shared with Codex) |
+| MCP config | `.mcp.json` | `.codex/config.toml` | `.rlyeh/dsh-patch.yml`, layered on with `--patch` at run time |
+| Model | `[harness.claude-code] model` → `.claude/settings.json` | `[harness.codex] model / effort` → top-level `model` / `model_reasoning_effort` | `[harness.dsh] provider / model` → `agent-default-model` in the patch |
+| Headless run | `claude -p` | `codex exec` | `dsh --profile headless "task"` |
+| Structured output | `--output-format stream-json` | `--json` (newline-delimited events) | none: the final answer goes to stdout, reasoning to stderr, exit code 0 / 1 |
 
-Codex and DeepSeek Harness both read `AGENTS.md` and `.agents/skills/`, so they share one copy; Claude Code gets a mirror in `.claude/skills/`.
+What gets overwritten:
 
-### Claude Code: `.mcp.json`
+- **Playbook and skills** are written whole by the tool. On re-export, files still as the last export left them are replaced with the new version (so upgrading rlyeh updates the playbook); files you edited are kept and shown as "kept", unless you pass `--force`. The export record lives in `.rlyeh/agent-export.json`.
+- **Config files** (`CLAUDE.md`, `.mcp.json`, `.claude/settings.json`, `.codex/config.toml`) only get R'lyeh Workshop's own entry: the `@AGENTS.md` line, the `rlyeh` server, the model. Everything else stays as it was. Files that can't be parsed are left alone and reported.
+- **The MCP command** defaults to the absolute path of `replay` in this install (or `<current Python> -m rlyeh.cli` when no `replay` from the same install is found), with arguments `mcp -C <absolute project path>`. Export again after moving the folder or switching machines; for a PATH-dependent `replay`, pass `--command replay`.
+
+### Claude Code
+
+`.mcp.json`:
 
 ```json
 {
   "mcpServers": {
-    "rlyeh": { "command": "replay", "args": ["mcp"] }
+    "rlyeh": { "type": "stdio", "command": "…/replay", "args": ["mcp", "-C", "…/my-campaign"] }
   }
 }
 ```
 
-### Codex: `.codex/config.toml`
+Project MCP servers need the user's approval: the first time you start `claude` in the project folder it asks; enable it, and `/mcp` shows whether it's connected. The export doesn't approve it for you.
+
+### Codex
+
+`.codex/config.toml`:
 
 ```toml
+model = "gpt-6.1-sol"              # from [harness.codex]; omitted when not set
+model_reasoning_effort = "low"
+
 [mcp_servers.rlyeh]
-command = "replay"
-args = ["mcp"]
+command = "…/replay"
+args = ["mcp", "-C", "…/my-campaign"]
 startup_timeout_sec = 30
-tool_timeout_sec = 600        # stage tools can be slow; long jobs return a job ID right away
+tool_timeout_sec = 600             # slow stages run as background jobs; this is only a backstop
 ```
 
-Or register it from the CLI: `codex mcp add rlyeh -- replay mcp`.
+Codex only reads `.codex/config.toml` in **trusted projects**: trust the folder the first time you run `codex` there. If you'd rather not, register the server globally with `codex mcp add rlyeh -- <the command the export prints>`. When `[harness.codex]` sets no model, the export warns that Codex will use your own default model and reasoning effort.
 
-### DeepSeek Harness: `.rlyeh/dsh-mcp.yml`
+### DeepSeek Harness
+
+dsh only has profile-level and `$DSH_HOME`-level config, no project level, so the export writes a patch to pass at run time:
 
 ```yaml
+- id: agent-default-model          # from [harness.dsh]; omitted when not set. A patch replaces the plugin's whole config, so provider is included
+  config:
+    provider: deepseek-official
+    model: deepseek-flash
 - insert:
-    - id: mcp-rlyeh
-      name: '@deepseek-ai/dsh-mcp-client'
-      config:
-        transport: stdio
-        serverName: rlyeh
-        command: replay
-        args: [mcp]
-        env: {}
-        cwd: .
-        toolCallTimeoutMs: 600000
-        failOnStartupError: true
+  - id: mcp-rlyeh
+    name: '@deepseek-ai/dsh-mcp-client'
+    config:
+      serverName: rlyeh
+      transport: stdio
+      command: …/replay
+      args: [mcp, -C, …/my-campaign]
+      cwd: …/my-campaign
+      toolCallTimeoutMs: 600000
+      failOnStartupError: true
 ```
 
-Run: `dsh headless --patch .rlyeh/dsh-mcp.yml --json "Continue this replay project following AGENTS.md"`. For interactive use, add the same entry to `$DSH_HOME/profiles/web/cordis.patch.yml`.
+Run: `dsh --profile headless --patch .rlyeh/dsh-patch.yml "Continue this replay project following AGENTS.md"`. When dsh starts an MCP server it drops environment variables whose names contain KEY, TOKEN, SECRET or PASSWORD.
 
-> DeepSeek Harness is a developer preview and its maintainers state that breaking changes will happen. M2 will target the version current at that time, and the export logic will be a template that can be updated on its own.
+> DeepSeek Harness is a developer preview and its maintainers say breaking changes will happen. The export format was checked against 0.1.5; if dsh changes it, only `rlyeh/harness.py` needs updating.
 
 ## Studio's agent panel
 
@@ -156,7 +183,7 @@ Run: `dsh headless --patch .rlyeh/dsh-mcp.yml --json "Continue this replay proje
 
 ## Usage limits and permissions
 
-- `[harness.<name>]` in `replay.toml` caps the model and reasoning effort per harness, and the export writes these into each config. A production lesson: with no model specified, Codex defaulted to its most expensive model at maximum effort, researched and searched for references on its own, and made 9 model calls for one image.
+- `[harness.<name>]` in `replay.toml` caps the model and reasoning effort per harness, and `replay export-agent` writes them into each config (see the table above). A production lesson: with no model specified, Codex defaulted to its most expensive model at maximum effort, researched and searched for references on its own, and made 9 model calls for one image.
 - Long jobs (voice, render) run in the background; the tool returns a job ID at once and the agent checks `rlyeh_job` instead of blocking or polling too often.
 - Agents may modify only the project folder; publishing anything (pushing, uploading) is always confirmed by the user in Studio.
 

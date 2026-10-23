@@ -12,3 +12,10 @@ art/sprites/
 art/backgrounds/
 art/cg/
 art/items/
+# replay export-agent 写的 AI 配置（里面是这台机器上的绝对路径）
+AGENTS.md
+CLAUDE.md
+.claude/
+.agents/
+.codex/
+.mcp.json
