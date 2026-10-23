@@ -58,6 +58,10 @@
 
 MCP 服务**不提供改文件的工具**：harness 自己有读写文件的能力，剧本、角色表这些文本直接改文件，改完调 `rlyeh_lint`。
 
+实现：`replay mcp` 只用标准库，stdio 上一行一条 JSON-RPC 消息，支持协议版本 2025-06-18、2025-03-26、2024-11-05；工具说明跟着项目语言（中文 / 英文）。已经用官方的 MCP Inspector 客户端核对过。
+
+**后台任务**：`rlyeh_run_stage` 开一个独立的 runner 进程跑对应的 `replay` 命令，记录在 `.rlyeh/jobs/<任务ID>.json`（状态 queued → running → done / failed，命令的 JSON 结果）和 `.log`（进度）。runner 和 MCP 连接无关，harness 关掉也会跑完；同一个项目一次只跑一个，后来的排队（显卡同时跑两个大模型会爆显存）；runner 意外死掉的任务显示为 `lost`。
+
 ## 流程手册
 
 ```

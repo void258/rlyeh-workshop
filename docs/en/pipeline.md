@@ -16,15 +16,38 @@ The pipeline is a series of **stages**. Each stage lists what it reads, what it 
 
 ```json
 {
-  "id": "voice.qa.c1",
+  "id": "voice.fix",
   "kind": "agent",
   "stage": "voice",
-  "title": "Read the chapter 1 voice QA report; decide which lines need a reading fix or a redo",
-  "inputs": ["build/voice_qa.json"],
+  "status": "todo",
+  "title": "Go through lines that failed QA: fix readings, redo with new seeds, or accept them",
+  "detail": { "failed": ["c1-0054"], "total": 1 },
   "playbook": "rlyeh-voice",
-  "blocked_by": []
+  "inputs": ["build/voice_qa.json"],
+  "blocked_by": ["voice.qa"]
 }
 ```
+
+- Task states: `todo` · `stale` (done before, but its inputs changed) · `review` (waiting for a person) · `done` · `skip` (not needed in this project, e.g. picking voices with placeholder voices).
+- States are computed from the project files; no separate progress is stored. Only "done" for agent tasks is recorded in `.rlyeh/tasks.json`, with a hash of the inputs at that time; when the inputs change the task comes back. Condition-based agent tasks (script errors, TODOs left in prompts) can't be marked done; they must actually be fixed.
+- `replay next` returns unblocked required tasks first, then those waiting for review, then optional ones (such as designing a theme); `replay next --all` lists everything.
+
+| Task | Kind | What |
+|---|---|---|
+| `import.run` | tool | Import `logs/raw/` |
+| `script.write` | agent | Write the script from the log (`rlyeh-script`) |
+| `cast.write` | agent | Complete the cast: unregistered speakers, characters missing looks / expressions / voice descriptions (`rlyeh-cast`) |
+| `script.lint` / `script.ids` | agent / tool | Fix script errors / assign line IDs |
+| `voice.design` / `voice.pick` | tool / review | Voice candidates / a person picks voices (`/voices`) |
+| `voice.build` / `voice.qa` | tool | Synthesize / recognition QA |
+| `voice.fix` | agent | Lines that failed QA: fix readings, redo or accept (`rlyeh-voice`) |
+| `voice.redo` / `voice.review` / `voice.bleep` | tool / review / tool | Redo marked lines / line review by a person / bleeping |
+| `art.jobs` / `art.prompts` / `art.run` | tool / agent / tool | Starter prompts / finish TODOs (`rlyeh-art`) / generate |
+| `art.redo` / `art.review` | agent / review | Revise prompts per review notes and redraw / art review by a person |
+| `sfx.build` | tool | Sound effects |
+| `music.sheet` / `music.gen` / `music.check` / `music.pick` | agent / tool / tool / review | Cue sheet (`rlyeh-music`) / generate / vocal check / a person picks takes |
+| `player.theme` | agent (optional) | Design a theme for the campaign (`rlyeh-theme`) |
+| `player.build` / `render.video` / `render.encode` | tool | Build the player / render / encode the share version |
 
 ## 1. Import
 

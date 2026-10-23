@@ -33,7 +33,7 @@ my-replay/
 │   └── sfx/<sfx-id>.wav           sound effects; index.json lists names, aliases and durations
 ├── review/              human review results (written by Studio, read by the AI)
 ├── build/               regenerable outputs: player/ the player, video/ rendered pictures and final videos
-└── .rlyeh/              state and caches: state.json, task records, logs
+└── .rlyeh/              state and caches: state.json artifact records, tasks.json done-records of AI tasks, jobs/ background jobs
 ```
 
 Rules:

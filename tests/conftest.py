@@ -1,3 +1,6 @@
+import pathlib
+import shutil
+
 import pytest
 
 from rlyeh import i18n
@@ -71,3 +74,23 @@ def full_project(make_project):
         return proj
 
     return make
+
+
+EXAMPLE = pathlib.Path(__file__).resolve().parent.parent / 'examples' / 'fog-harbor'
+EXAMPLE_SOURCES = ['replay.toml', 'cast.yaml', 'music.yaml', 'sfx.yaml', 'logs/raw', 'script', 'art/prompts']
+
+
+@pytest.fixture
+def example_project(tmp_path):
+    """示例团的「原料」复制一份（示例团在仓库里跑过的话，生成的文件不带过来）。"""
+    i18n.set_lang('zh-CN')
+    root = tmp_path / 'fog-harbor'
+    for rel in EXAMPLE_SOURCES:
+        src, dst = EXAMPLE / rel, root / rel
+        if src.is_dir():
+            shutil.copytree(src, dst)
+        else:
+            dst.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(src, dst)
+    yield Project(root)
+    i18n.set_lang(None)

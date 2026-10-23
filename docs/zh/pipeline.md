@@ -16,15 +16,38 @@
 
 ```json
 {
-  "id": "voice.qa.c1",
+  "id": "voice.fix",
   "kind": "agent",
   "stage": "voice",
-  "title": "看第一章配音质检结果，决定哪些句子要改读法或重做",
-  "inputs": ["build/voice_qa.json"],
+  "status": "todo",
+  "title": "看质检不合格的句子：改读法、换种子重做，或者接受",
+  "detail": { "failed": ["c1-0054"], "total": 1 },
   "playbook": "rlyeh-voice",
-  "blocked_by": []
+  "inputs": ["build/voice_qa.json"],
+  "blocked_by": ["voice.qa"]
 }
 ```
+
+- 任务状态：`todo`（要做）· `stale`（做过但输入变了）· `review`（等人）· `done` · `skip`（这个项目用不到，例如占位配音不用选声线）。
+- 状态都是从项目文件现算的，不另外存进度。只有 agent 任务的「做完了」记在 `.rlyeh/tasks.json`，连同当时输入的哈希；输入一变就又要做。条件型的 agent 任务（剧本有错误、提示词里还有 TODO）不能直接标完成，要真的改好。
+- `replay next` 先给没被挡住的必做任务，再是等人审核的，最后是可选的（例如设计主题）；`replay next --all` 列出全部。
+
+| 任务 | 类别 | 内容 |
+|---|---|---|
+| `import.run` | tool | 导入 `logs/raw/` |
+| `script.write` | agent | 按记录写剧本（`rlyeh-script`） |
+| `cast.write` | agent | 补全角色表：剧本里没登记的说话人、缺外貌 / 表情 / 声线描述的角色（`rlyeh-cast`） |
+| `script.lint` / `script.ids` | agent / tool | 修剧本错误 / 补台词 ID |
+| `voice.design` / `voice.pick` | tool / review | 候选声线 / 人挑声线（`/voices`） |
+| `voice.build` / `voice.qa` | tool | 生成配音 / 识别质检 |
+| `voice.fix` | agent | 看质检不合格的句子：改读法、重做或接受（`rlyeh-voice`） |
+| `voice.redo` / `voice.review` / `voice.bleep` | tool / review / tool | 重做审听标记的句子 / 人逐句审听 / 消音 |
+| `art.jobs` / `art.prompts` / `art.run` | tool / agent / tool | 起步提示词 / 写完 TODO（`rlyeh-art`）/ 生图 |
+| `art.redo` / `art.review` | agent / review | 按审核意见改提示词再重画 / 人审美术 |
+| `sfx.build` | tool | 音效 |
+| `music.sheet` / `music.gen` / `music.check` / `music.pick` | agent / tool / tool / review | 曲目表（`rlyeh-music`）/ 生成 / 查人声 / 人挑一版 |
+| `player.theme` | agent（可选） | 按团的气质设计主题（`rlyeh-theme`） |
+| `player.build` / `render.video` / `render.encode` | tool | 打包播放器 / 渲染 / 压制分享版 |
 
 ## 1. 导入
 

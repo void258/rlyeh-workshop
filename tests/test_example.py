@@ -1,35 +1,14 @@
 """示例团从导入一路跑到播放器（能渲染的机器上再渲染几秒）。"""
-import pathlib
 import shutil
 
 import pytest
 
-from rlyeh import art, i18n, importers, music, player, render, sfx, voice
-from rlyeh.project import Project
+from rlyeh import art, importers, music, player, render, sfx, voice
 from rlyeh.script.lint import lint
 
-EXAMPLE = pathlib.Path(__file__).resolve().parent.parent / 'examples' / 'fog-harbor'
-SOURCES = ['replay.toml', 'cast.yaml', 'music.yaml', 'sfx.yaml', 'logs/raw', 'script', 'art/prompts']
 
-
-@pytest.fixture
-def example(tmp_path):
-    """只复制「原料」：示例团在仓库里跑过的话，生成的文件不带过来。"""
-    i18n.set_lang('zh-CN')
-    root = tmp_path / 'fog-harbor'
-    for rel in SOURCES:
-        src, dst = EXAMPLE / rel, root / rel
-        if src.is_dir():
-            shutil.copytree(src, dst)
-        else:
-            dst.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copy2(src, dst)
-    yield Project(root)
-    i18n.set_lang(None)
-
-
-def test_example_end_to_end(example):
-    proj = example
+def test_example_end_to_end(example_project):
+    proj = example_project
     events, rep = importers.run(proj.root, proj.config)
     assert rep['events'] == 45 and len(rep['sessions']) == 1 and not rep['private']
     assert {e.role for e in events if e.speaker == 'GM'} == {'gm'} and {e.kind for e in events if e.speaker == '维拉'} >= {'roll'}
@@ -74,8 +53,8 @@ def _can_render():
 
 
 @pytest.mark.skipif(not _can_render(), reason='needs playwright with chromium and ffmpeg')
-def test_example_renders(example):
-    proj = example
+def test_example_renders(example_project):
+    proj = example_project
     voice.build(proj)
     art.run(proj)
     sfx.build(proj)

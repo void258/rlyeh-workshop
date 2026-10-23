@@ -6,7 +6,7 @@ import re
 import sys
 from importlib import resources
 
-from . import SPEC_VERSION, __version__, art, doctor, encode, i18n, importers, music, player, render, sfx, voice
+from . import SPEC_VERSION, __version__, art, doctor, encode, i18n, importers, music, player, render, sfx, tasks, voice
 from .backends import BackendError
 from .backends.worker import WorkerError
 from .player.theme import ThemeError
@@ -133,7 +133,9 @@ def _ids(s):
 
 
 def _progress(args):
-    return None if args.json else (lambda line: print('  ' + line, flush=True))
+    if args.json:                                   # --json 时标准输出只放结果，进度写到标准错误（后台任务的日志就是它）
+        return lambda line: print(line, file=sys.stderr, flush=True)
+    return lambda line: print('  ' + line, flush=True)
 
 
 def cmd_voice(args):
@@ -309,6 +311,47 @@ def cmd_encode(args):
     return 0
 
 
+def cmd_next(args):
+    proj = _project(args)
+    all_tasks = tasks.plan(proj)
+    task = tasks.next_task(proj, all_tasks)
+    if args.all:
+        mark = {'done': '✓', 'skip': '·', 'review': '?', 'todo': '→', 'stale': '↻'}
+        lines = [t('cli.next_row', mark=mark.get(x.status, ' '), status=x.status, kind=x.kind, id=x.id, title=x.title)
+                 for x in all_tasks]
+        _out(args, dict(ok=True, next=task.as_dict() if task else None, tasks=[x.as_dict() for x in all_tasks],
+                        overview=tasks.overview(all_tasks)), '\n'.join(lines))
+        return 0
+    if task is None:
+        _out(args, dict(ok=True, next=None), t('cli.next_none'))
+        return 0
+    lines = [t('cli.next_task', kind=task.kind, id=task.id, title=task.title)]
+    if task.kind == 'agent':
+        lines.append(t('cli.next_agent', playbook=task.playbook, id=task.id))
+    elif task.kind == 'tool':
+        lines.append(t('cli.next_tool', command=' '.join(task.command or [])))
+    else:
+        lines.append(t('cli.next_review', page=task.page))
+    shown = {k: v for k, v in task.detail.items() if k != 'key' and v not in ([], {}, 0, None, '')}
+    if shown:
+        lines.append(t('cli.next_detail', detail=json.dumps(shown, ensure_ascii=False)[:600]))
+    _out(args, dict(ok=True, next=task.as_dict()), '\n'.join(lines))
+    return 0
+
+
+def cmd_done(args):
+    proj = _project(args)
+    rec = tasks.complete(proj, args.id, args.note or '')
+    _out(args, dict(ok=True, id=args.id, record=rec), t('cli.done_ok', id=args.id))
+    return 0
+
+
+def cmd_mcp(args):
+    from .mcp import serve
+    serve(args.project)                              # 标准输出只放 MCP 协议消息
+    return 0
+
+
 def cmd_doctor(args):
     root = find_root(args.project)
     proj = Project(root) if root else None
@@ -382,6 +425,13 @@ def build_parser():
     p.set_defaults(func=cmd_import)
     p = sub.add_parser('status', parents=[common], help='project status / 项目进度')
     p.set_defaults(func=cmd_status)
+    p = sub.add_parser('next', parents=[common], help='the next task / 下一件该做的事')
+    p.add_argument('--all', action='store_true', help='every task with its status / 列出全部任务')
+    p.set_defaults(func=cmd_next)
+    p = sub.add_parser('done', parents=[common], help='mark an agent task done / 标记 AI 任务完成')
+    p.add_argument('id')
+    p.add_argument('--note')
+    p.set_defaults(func=cmd_done)
 
     p = sub.add_parser('voice', help='voices and voice acting / 声线与配音')
     vs = p.add_subparsers(dest='action', required=True)
@@ -444,6 +494,8 @@ def build_parser():
     for q in ms.choices.values():
         q.set_defaults(func=cmd_music)
 
+    p = sub.add_parser('mcp', parents=[common], help='run the MCP server on stdio / 以 stdio 方式运行 MCP 服务')
+    p.set_defaults(func=cmd_mcp)
     p = sub.add_parser('doctor', parents=[common], help='check the environment and backends / 检查环境和后端')
     p.set_defaults(func=cmd_doctor)
     p = sub.add_parser('build', parents=[common], help='build the player / 打包播放器')
@@ -495,7 +547,7 @@ def main(argv=None):
     except ProjectError as e:
         _out(args, dict(ok=False, error=str(e)), str(e))
         return 2
-    except (voice.VoiceError, art.ArtError, sfx.SfxError, music.MusicError, render.RenderError, encode.EncodeError, ThemeError,
+    except (voice.VoiceError, art.ArtError, sfx.SfxError, music.MusicError, render.RenderError, encode.EncodeError, ThemeError, tasks.TaskError,
             BackendError, WorkerError) as e:
         _out(args, dict(ok=False, error=str(e)), t('cli.error', err=e))
         return 3

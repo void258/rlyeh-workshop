@@ -362,6 +362,21 @@ def bleep(project, on_line=None):
     return done, problems
 
 
+def bleep_pending(project):
+    """还没消音或消音过期的句子 ID（只看，不动手）。"""
+    state = State(project.root)
+    out = []
+    for _, it, _, lang in lines(project):
+        src = project.root / VOICE_DIR / f'{it.id}.wav'
+        if not it.bleeps or not src.exists():
+            continue
+        _, spans = bleep_spans(project, it, lang)
+        key = f'{BLEEP_DIR}/{it.id}.wav'
+        if spans and not state.fresh(key, digest(src, spans), project.root / key):
+            out.append(it.id)
+    return out
+
+
 def recheck(project, items, on_line=None):
     """消音后再识别一遍：识别结果里还听得出消音词，就报出来。识别后端是 none 时跳过。"""
     asr = backends.get(project, 'asr')

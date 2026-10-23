@@ -33,7 +33,7 @@ my-replay/
 │   └── sfx/<音效ID>.wav          音效；index.json 是名字、别名、时长的索引
 ├── review/              人工审核结果（Studio 写，AI 读）
 ├── build/               可再生成的产物：player/ 播放器、video/ 渲染画面和成片
-└── .rlyeh/              状态与缓存：state.json、任务记录、日志
+└── .rlyeh/              状态与缓存：state.json 产物记录、tasks.json AI 任务的完成记录、jobs/ 后台任务
 ```
 
 规则：

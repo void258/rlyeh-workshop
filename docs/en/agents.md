@@ -58,6 +58,10 @@ Tool names start with `rlyeh_`. The full name a harness shows is up to the harne
 
 The MCP server **has no file-editing tools**: harnesses already read and write files, so scripts and cast sheets are edited directly, followed by `rlyeh_lint`.
 
+Implementation: `replay mcp` uses only the standard library, one JSON-RPC message per line over stdio, protocol versions 2025-06-18, 2025-03-26 and 2024-11-05; tool descriptions follow the project language (Chinese / English). Checked against the official MCP Inspector client.
+
+**Background jobs**: `rlyeh_run_stage` starts a separate runner process for the matching `replay` command, recorded in `.rlyeh/jobs/<job-id>.json` (status queued → running → done / failed, plus the command's JSON result) and `.log` (progress). The runner doesn't depend on the MCP connection, so it finishes even if the harness exits; one job runs at a time per project and later ones queue (two large models at once would run out of VRAM); jobs whose runner died show as `lost`.
+
 ## Playbook
 
 ```
