@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>R'lyeh Workshop</title>
 <link rel="stylesheet" href="player.css">
+<link rel="stylesheet" href="theme/theme.css">
 </head>
 <body>
 <div id="stage">
@@ -29,7 +30,7 @@
     <div id="box" class="empty">
       <i class="orn tl"></i><i class="orn tr"></i><i class="orn bl"></i><i class="orn br"></i>
       <div class="nameplate"><span class="name"></span><span class="sub"></span></div>
-      <div class="narmark">❖</div>
+      <div class="narmark"></div>
       <div class="text"></div>
       <div class="next"></div>
     </div>
@@ -63,7 +64,9 @@
     <div class="t-foot"></div>
   </div>
 </div>
-<script src="data.js"></script>
+<script>   /* ?data=showcase 换一份数据（主题预览用），只认字母数字 */
+  document.write('<script src="' + ((new URLSearchParams(location.search).get('data') || '').match(/^[a-z0-9_-]+$/) || ['data'])[0] + '.js"><\/script>');
+</script>
 <script src="player.js"></script>
 </body>
 </html>

@@ -26,18 +26,26 @@
       battleEnd: '战斗结束', end: '完', loading: '载入素材', start: '开始', cont: '继续', auto: '自动', skip: '快进', logBtn: '记录',
       hide: '隐藏', mute: '静音', full: '全屏', titleBtn: '标题', log: '对话记录', logHint: 'Esc / 右键 关闭 · 点名字旁的 ▶ 重听 · 点 ↺ 从这句开始',
       replay: '重听', jump: '从这句开始', autoChip: '自动 ▶', skipChip: '快进 ▶▶',
+      encounter: 'ENCOUNTER', roundTag: 'ROUND', victory: 'VICTORY', itemTag: 'ITEM', vs: 'VS', natural: 'NATURAL', replayTag: 'TRPG REPLAY',
       results: { hit: '命中', miss: '未中', success: '成功', failure: '失败', critical: '大成功', fumble: '大失败' } },
     en: { oocHead: 'OOC · TABLE TALK', ooc: 'OOC', narrator: 'Narrator', combat: 'In combat · ', round1: 'Round 1', battleStart: 'Battle',
       battleEnd: 'Battle over', end: 'Fin', loading: 'Loading', start: 'Start', cont: 'Continue', auto: 'Auto', skip: 'Skip', logBtn: 'Log',
       hide: 'Hide', mute: 'Mute', full: 'Full', titleBtn: 'Title', log: 'Log', logHint: 'Esc / right click to close · ▶ replays a line · ↺ starts from it',
       replay: 'Replay', jump: 'Start here', autoChip: 'AUTO ▶', skipChip: 'SKIP ▶▶',
+      encounter: 'ENCOUNTER', roundTag: 'ROUND', victory: 'VICTORY', itemTag: 'ITEM', vs: 'VS', natural: 'NATURAL', replayTag: 'TRPG REPLAY',
       results: { hit: 'Hit', miss: 'Miss', success: 'Success', failure: 'Failure', critical: 'Critical', fumble: 'Fumble' } },
   };
   const L = (R.lang || 'zh-CN').startsWith('en') ? 'en' : 'zh';
-  const T = TEXT[L];
+  const THEME = R.theme || {};
+  const T = Object.assign({}, TEXT[L], THEME.text || {});                  // 主题的 [text] 可以改任何一条
+  T.results = Object.assign({}, TEXT[L].results, (THEME.text || {}).results || {});
+  // 设计变量：主题在 theme.css 里改，脚本里的粒子颜色、闪屏颜色也从这里读
+  const tok = (name, def) => getComputedStyle(document.documentElement).getPropertyValue('--' + name).trim() || def;
+  const rgb = (name, def) => tok(name, def.join(',')).split(',').map(Number);
   document.documentElement.lang = L === 'en' ? 'en' : 'zh-CN';
   document.title = [R.title, R.subtitle].filter(Boolean).join(' · ');
   document.querySelectorAll('[data-i]').forEach(e => { e.textContent = T[e.dataset.i]; });
+  if (THEME.id) document.body.classList.add('theme-' + THEME.id);
 
   const stage = $('#stage'), world = $('#world'), bgLayer = $('#bg'), charsEl = $('#chars'), cgEl = $('#cg'), coldEl = $('#cold'),
     flashEl = $('#flash'), hud = $('#hud'), ui = $('#ui'), box = $('#box'), plate = $('.nameplate', box), nameEl = $('.name', box),
@@ -224,7 +232,7 @@
   const GM_AVATAR = 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><radialGradient id="g" cx="50%" cy="38%"><stop offset="0" stop-color="#43357c"/><stop offset="1" stop-color="#120e24"/></radialGradient></defs><rect width="100" height="100" fill="url(#g)"/><g fill="none" stroke="#c4b8ff" stroke-width="2.4" stroke-linejoin="round"><polygon points="50,14 81,32 81,68 50,86 19,68 19,32"/><polygon points="50,30 67,60 33,60"/><path d="M50,14 50,30 M81,32 50,30 M19,32 50,30 M81,32 67,60 M81,68 67,60 M50,86 67,60 M50,86 33,60 M19,68 33,60 M19,32 33,60"/></g><text x="50" y="54.5" font-family="serif" font-size="12" font-weight="700" fill="#efeaff" text-anchor="middle">GM</text></svg>');
   function playerInfo(who) {
     const p = R.players[who] || {};
-    return { color: p.color || '#999', avatar: p.avatar || (p.gm ? GM_AVATAR : null), char: p.char ? nameOf(p.char) : null, gm: !!p.gm };
+    return { color: p.color || '#999', avatar: p.avatar || (p.gm ? (THEME.images || {}).gm_avatar || GM_AVATAR : null), char: p.char ? nameOf(p.char) : null, gm: !!p.gm };
   }
   function pushBubble(s) {
     chatEl.classList.add('on');
@@ -582,8 +590,8 @@
     hud.appendChild(b);
     try { await W_(ms); } finally { b.classList.add('out'); setTimeout(() => b.remove(), 500); }
   }
-  const D20 = '<svg viewBox="0 0 200 200"><polygon class="face" points="100,8 182,54 182,146 100,192 18,146 18,54" fill="url(#dieDark)" stroke="#f6e2a8" stroke-width="3" stroke-linejoin="round"/>'
-    + '<g fill="none" stroke="rgba(246,226,168,.55)" stroke-width="2" stroke-linejoin="round"><polygon points="100,46 152,136 48,136"/>'
+  const D20 = '<svg viewBox="0 0 200 200"><polygon class="face" points="100,8 182,54 182,146 100,192 18,146 18,54" fill="url(#dieDark)" stroke-width="3" stroke-linejoin="round"/>'
+    + '<g fill="none" stroke-width="2" stroke-linejoin="round"><polygon points="100,46 152,136 48,136"/>'
     + '<path d="M100,8 100,46 M182,54 100,46 M18,54 100,46 M182,54 152,136 M182,146 152,136 M100,192 152,136 M100,192 48,136 M18,146 48,136 M18,54 48,136"/></g></svg>';
   const DIE = R.die ?? 20;
   const outcome = res => res === 'fumble' ? 'fumble' : res === 'failure' || res === 'miss' ? 'bad' : 'good';
@@ -617,10 +625,10 @@
         c.num.textContent = c.val;
         c.col.classList.add('landed', o);
         if (crit) c.col.classList.add('crit');
-        if (DIE === 20 && c.val === 20) c.col.querySelector('.die-nat').textContent = 'NATURAL 20';
-        if (DIE === 20 && c.val === 1) c.col.querySelector('.die-nat').textContent = 'NATURAL 1';
+        if (DIE === 20 && (c.val === 20 || c.val === 1)) c.col.querySelector('.die-nat').textContent = `${T.natural} ${c.val}`;
         const p = stagePoint(c.col.querySelector('.d20'));
-        fx.burst(p.x, p.y, { n: crit ? 70 : 28, color: o === 'fumble' ? [255, 70, 50] : o === 'bad' ? [160, 180, 210] : [255, 215, 120], speed: [180, crit ? 900 : 520] });
+        const col = o === 'fumble' ? rgb('fx-fumble', [255, 70, 50]) : o === 'bad' ? rgb('fx-bad', [160, 180, 210]) : rgb('fx-good', [255, 215, 120]);
+        fx.burst(p.x, p.y, { n: crit ? 70 : 28, color: col, speed: [180, crit ? 900 : 520] });
         if (o === 'fumble' || crit) shake();
         sfx(crit ? 'dice_crit' : o === 'fumble' ? 'dice_fumble' : o === 'bad' ? 'dice_bad' : 'dice_good', cols.length > 1 ? .7 : 1);
         if (c.res === 'miss') sfx('miss');
@@ -666,7 +674,7 @@
       S.chapterTitle = [num, name].filter(Boolean).join(' · ');
       card.innerHTML = `<div class="cc-num">${esc(num)}</div><div class="cc-lines"><i></i><em></em><i></i></div>`
         + `<div class="cc-name">${[...name].map((c, i) => `<span style="animation-delay:${(.5 + i * .14).toFixed(2)}s">${esc(c)}</span>`).join('')}</div>`
-        + `<div class="cc-sub">${esc(spaced(R.title))} · TRPG REPLAY</div>`;
+        + `<div class="cc-sub">${esc(spaced(R.title))} · ${esc(T.replayTag)}</div>`;
       card.className = 'on';
       sfx('chapter');
       await W_(700);
@@ -715,20 +723,20 @@
     async 'battle-start'() {
       S.combat = { round: T.round1 };
       world.classList.add('combat');
-      flash('rgba(200,20,10,.55)', .8, .8); shake();
-      fx.burst(W / 2, H / 2, { n: 60, color: [255, 120, 60], speed: [400, 1400], g: 0 });
+      flash(tok('flash-battle', 'rgba(200,20,10,.55)'), .8, .8); shake();
+      fx.burst(W / 2, H / 2, { n: 60, color: rgb('fx-battle', [255, 120, 60]), speed: [400, 1400], g: 0 });
       sfx('battle_start');
       S.preBattle = music.cue; if (R.battle) bgm(R.battle, .5);
-      await showBanner(T.battleStart, 'ENCOUNTER', '', 1700);
+      await showBanner(T.battleStart, T.encounter, '', 1700);
       updateCombat();
     },
-    async round([name]) { if (S.combat) S.combat.round = name; updateCombat(); sfx('gong'); await showBanner(name, 'ROUND', 'round', 1100); },
+    async round([name]) { if (S.combat) S.combat.round = name; updateCombat(); sfx('gong'); await showBanner(name, T.roundTag, 'round', 1100); },
     async 'battle-end'() {
       S.combat = null; updateCombat();
       world.classList.remove('combat');
       flash('rgba(255,240,200,.5)', 1, .6);
       sfx('battle_end'); if (R.battle) bgm(S.preBattle, 2.5);
-      await showBanner(T.battleEnd, 'VICTORY', 'end', 1500);
+      await showBanner(T.battleEnd, T.victory, 'end', 1500);
     },
     async damage([target, amt]) {
       const id = charOf(target);
@@ -742,7 +750,7 @@
       d.style.left = p.x + 'px'; d.style.top = p.y + 'px';
       hud.appendChild(d);
       setTimeout(() => d.remove(), 1500);
-      fx.burst(p.x, p.y, { n: 24 + 4 * (+amt || 1), color: [255, 110, 50], speed: [250, 900], size: [5, 12] });
+      fx.burst(p.x, p.y, { n: 24 + 4 * (+amt || 1), color: rgb('fx-hit', [255, 110, 50]), speed: [250, 900], size: [5, 12] });
       if (c) { c.node.classList.remove('hit'); reflow(c.node); c.node.classList.add('hit'); }
       flash('radial-gradient(ellipse at center, transparent 40%, rgba(200,0,0,.6))', .6);
       sfx(hitSound(S.lastSkill));     // 按前面那次掷骰的技能挑打击声；没有就是被怪物打
@@ -757,7 +765,7 @@
         return `<div class="vs-side ${cls}" style="--c:${c.color || '#888'}">${c.avatar ? `<img src="${c.avatar}" alt="">` : ''}`
           + `<div class="vs-info"><b>${esc(nameOf(x.who))}</b><span>${esc(x.stat)}</span><em>0</em></div></div>`;
       };
-      const panel = make('div', 'vs-panel', side(A, 'l') + '<div class="vs-mid">VS</div>' + side(B, 'r') + `<div class="vs-res">${esc(res)}</div>`);
+      const panel = make('div', 'vs-panel', side(A, 'l') + `<div class="vs-mid">${esc(T.vs)}</div>` + side(B, 'r') + `<div class="vs-res">${esc(res)}</div>`);
       hud.appendChild(panel);
       sfx('dash', .6);
       setTimeout(() => sfx('clash', .8), 400);
@@ -778,16 +786,16 @@
         if (winA || winB) {
           sides[winA ? 0 : 1].classList.add('win'); sides[winA ? 1 : 0].classList.add('lose');
           const p = stagePoint(sides[winA ? 0 : 1]);
-          fx.burst(p.x, p.y, { n: 40, color: [255, 215, 120], speed: [200, 700] });
+          fx.burst(p.x, p.y, { n: 40, color: rgb('fx-good', [255, 215, 120]), speed: [200, 700] });
         }
         panel.classList.add('done'); shake();
         await W_(1300);
       } finally { panel.classList.add('out'); setTimeout(() => panel.remove(), 450); }
     },
     async item([name]) {
-      const n = make('div', 'item-show', `<div class="halo"></div>${R.items[name] ? `<img src="${R.items[name]}" alt="">` : ''}<div class="iname"><small>ITEM</small>${esc(name)}</div>`);
+      const n = make('div', 'item-show', `<div class="halo"></div>${R.items[name] ? `<img src="${R.items[name]}" alt="">` : ''}<div class="iname"><small>${esc(T.itemTag)}</small>${esc(name)}</div>`);
       hud.appendChild(n);
-      fx.burst(W / 2, H * .43, { n: 50, color: [255, 220, 150], speed: [100, 500], g: -40 });
+      fx.burst(W / 2, H * .43, { n: 50, color: rgb('fx-item', [255, 220, 150]), speed: [100, 500], g: -40 });
       sfx('item');
       try { await W_(2000); } finally { n.classList.add('out'); setTimeout(() => n.remove(), 520); }
     },
@@ -797,7 +805,7 @@
       const p = ([name, sub]) => `<div class="cr-p">${esc(name)}${sub ? `<small>${esc(sub)}</small>` : ''}</div>`;
       const bg = C.bg && R.bg[C.bg];
       creditsEl.innerHTML = (bg ? `<div class="bgimg" style="--img:url('${bg}')"></div>` : '') + '<div class="roll">'
-        + `<div class="cr-title">${esc(R.title)}</div><div class="cr-sub">${esc(R.subtitle ? R.subtitle + ' · ' : '')}TRPG REPLAY</div>`
+        + `<div class="cr-title">${esc(R.title)}</div><div class="cr-sub">${esc(R.subtitle ? R.subtitle + ' · ' : '')}${esc(T.replayTag)}</div>`
         + C.sections.map(s => `<div class="cr-h">${esc(spaced(s.h))}</div>` + s.items.map(p).join('')).join('')
         + `<div class="cr-end">${esc(C.end)}</div></div>`;
       creditsEl.className = 'on';
@@ -817,6 +825,7 @@
     try {
       while (g === S.gen && S.pc < STEPS.length && !(REC && CHAPTER != null && S.pc >= CH_START[CHAPTER + 1])) {
         const s = STEPS[S.pc++];
+        log({ type: 'step', i: S.pc - 1, k: s.k, name: s.name });
         if (isText(s)) { showText(s); await waitAdvance(); stopVoice(); }
         else if (s.k === 'scene') await doScene(s.title);
         else if (s.name === 'roll') {
@@ -912,7 +921,7 @@
   let logAudio = null;
   function logRow({ i, s }) {
     let name, color, av, sub = '';
-    if (s.k === 'nar') { name = T.narrator; color = '#c9b98f'; }
+    if (s.k === 'nar') { name = T.narrator; color = tok('narrator-color', '#c9b98f'); }
     else if (s.k === 'ooc') { const p = playerInfo(s.who); name = s.who; color = p.color; av = p.avatar; sub = T.ooc + (p.char ? ' · ' + p.char : ''); }
     else { const id = charOf(s.who), c = id ? R.chars[id] : {}; name = id ? c.name : s.who; color = c.color; av = c.avatar; sub = c.player ? 'PL · ' + c.player : ''; }
     const row = make('div', 'log-row ' + s.k,
@@ -1017,10 +1026,8 @@
 
   // ───────── 启动 ─────────
   document.body.insertAdjacentHTML('afterbegin', '<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>'
-    + '<linearGradient id="dieDark" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#5e4220"/><stop offset="1" stop-color="#1b120a"/></linearGradient>'
-    + '<linearGradient id="dieGrey" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3c4352"/><stop offset="1" stop-color="#11141b"/></linearGradient>'
-    + '<linearGradient id="dieRed" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8f1d14"/><stop offset="1" stop-color="#2a0604"/></linearGradient>'
-    + '<linearGradient id="dieGold" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff1b8"/><stop offset="1" stop-color="#c8901e"/></linearGradient>'
+    + ['dieDark:die', 'dieGrey:die-bad', 'dieRed:die-fumble', 'dieGold:die-crit'].map(x => { const [id, v] = x.split(':');
+      return `<linearGradient id="${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" style="stop-color:var(--${v}-a)"/><stop offset="1" style="stop-color:var(--${v}-b)"/></linearGradient>`; }).join('')
     + '</defs></svg>');
   $('.t-logo').innerHTML = [...R.title].map((c, i) => `<span style="animation-delay:${(.4 + i * .18).toFixed(2)}s">${esc(c)}</span>`).join('');
   $('.t-kicker').textContent = R.kicker || 'TRPG REPLAY';

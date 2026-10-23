@@ -14,7 +14,7 @@ Hand R'lyeh Workshop a session log exported from Foundry VTT or a similar platfo
 - **Voice**: one voice per character, generated sentence by sentence; automatic speech-recognition QA and retries; profanity stays in the subtitles and is bleeped in the audio.
 - **Art**: sprites with transparent backgrounds, multiple expressions, consistent designs across scenes and CGs.
 - **Music & SFX**: BGM switches per scene and automatically during battles; dice, hits, fire breath, doors breaking and more follow the staging.
-- **Player**: chapter cards, sprite staging, OOC chat feed, d20 rolls, damage numbers, contests, CGs, credits.
+- **Player**: chapter cards, sprite staging, OOC chat feed, d20 rolls, damage numbers, contests, CGs, credits; switch themes, or have the AI design a look that fits the campaign.
 - **Video**: deterministic frame-by-frame rendering (no dropped frames), automatic mixing, one-click master and compact AV1 share encodes.
 
 ## Supported AI harnesses
@@ -39,6 +39,7 @@ All three share the same `replay` CLI and the same MCP server. See [Agent integr
 - [Pipeline](docs/en/pipeline.md): what each stage does, plus defaults learned in production
 - [Agent integration](docs/en/agents.md)
 - [Backends & licensing](docs/en/backends.md)
+- [Player themes](docs/en/theming.md): every campaign can have its own look, designed by the AI to fit it
 
 ## Roadmap
 

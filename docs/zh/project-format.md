@@ -12,6 +12,7 @@ my-replay/
 ├── cast.yaml            角色表
 ├── music.yaml           曲目表（BGM）
 ├── sfx.yaml             项目自己的音效（可选）
+├── theme/               项目自己的播放器主题（可选，见 theming.md）
 ├── logs/                原始记录（只读，导入后不改）
 │   ├── raw/             原样保存的导出文件
 │   └── events.jsonl     导入后统一格式的事件流
@@ -112,6 +113,7 @@ browser = "chromium"              # chromium（playwright 自带）| msedge | ch
 jobs = 2                          # 几章同时渲染
 
 [player]
+theme = "dark-fantasy"            # 界面主题：内置主题名，或者项目里的主题文件夹，见 theming.md
 title_bg = "旅馆外观"              # 标题画面的背景；不写用剧本里第一个背景（连同它的变体）
 title_bgm = "title"               # 标题画面的曲目；不写用叫 title 的那段或第一段
 die = 20                          # 骰子面数：20 时掷出 20 / 1 显示 NATURAL 20 / 1；0 不显示

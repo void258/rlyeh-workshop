@@ -30,6 +30,7 @@
 | `replay sfx [--list]` | 生成音效（内置合成 + sfx.yaml）/ 列出音效和别名 |
 | `replay build` | 打包播放器（`build/player/`），列出缺的素材 |
 | `replay preview` | 启动本地预览（播放器、审核页） |
+| `replay theme list\|new\|preview` | 列出主题 / 新建项目主题 / 每种界面截图预览（见 [播放器主题](theming.md)） |
 | `replay render [--chapter N] [--from ID --seconds S] [--remix]` | 逐帧渲染 / 只重新混音 |
 | `replay encode <预设>` | 压制：`share` / `compat` / 自己在 `[encode.*]` 加的（`master` 就是渲染出的成片） |
 | `replay mcp` | 以 stdio 方式运行 MCP 服务 |
@@ -69,6 +70,7 @@ playbook/
 │       ├── rlyeh-voice/SKILL.md      声线与配音质检
 │       ├── rlyeh-art/SKILL.md        美术提示词
 │       ├── rlyeh-music/SKILL.md      曲目表与 BGM
+│       ├── rlyeh-theme/SKILL.md      按团的气质设计播放器主题
 │       └── rlyeh-render/SKILL.md     渲染与压制
 └── en/                           同上，英文
 ```

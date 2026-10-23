@@ -30,6 +30,7 @@ Integration has three layers, shared by all three:
 | `replay sfx [--list]` | Build sound effects (built-in + sfx.yaml) / list sounds and aliases |
 | `replay build` | Build the player (`build/player/`) and list missing assets |
 | `replay preview` | Start the local preview (player, review pages) |
+| `replay theme list\|new\|preview` | List themes / create a project theme / screenshots of every UI state (see [Player themes](theming.md)) |
 | `replay render [--chapter N] [--from ID --seconds S] [--remix]` | Frame-by-frame render / remix audio only |
 | `replay encode <preset>` | Encode: `share` / `compat` / your own `[encode.*]` (`master` is the rendered file itself) |
 | `replay mcp` | Run the MCP server over stdio |
@@ -69,6 +70,7 @@ playbook/
 │       ├── rlyeh-voice/SKILL.md      voices and voice QA
 │       ├── rlyeh-art/SKILL.md        art prompts
 │       ├── rlyeh-music/SKILL.md      cue list and BGM
+│       ├── rlyeh-theme/SKILL.md      player theme designed for the campaign
 │       └── rlyeh-render/SKILL.md     rendering and encoding
 └── en/                           same, in English
 ```

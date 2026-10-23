@@ -12,6 +12,7 @@ my-replay/
 ├── cast.yaml            cast sheet
 ├── music.yaml           cue sheet (BGM)
 ├── sfx.yaml             the project's own sound effects (optional)
+├── theme/               the project's own player theme (optional; see theming.md)
 ├── logs/                original logs (read-only once imported)
 │   ├── raw/             exported files, kept as-is
 │   └── events.jsonl     normalized event stream
@@ -112,6 +113,7 @@ browser = "chromium"              # chromium (bundled with playwright) | msedge 
 jobs = 2                          # chapters rendered at the same time
 
 [player]
+theme = "dark-fantasy"            # interface theme: a built-in theme or a theme folder in the project; see theming.md
 title_bg = "Inn exterior"         # title screen background; defaults to the script's first background (with its variants)
 title_bgm = "title"               # title screen cue; defaults to the cue called title, or the first one
 die = 20                          # die size: with 20, natural 20 / 1 show NATURAL 20 / 1; 0 hides it

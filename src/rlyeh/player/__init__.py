@@ -17,6 +17,7 @@ from ..script import directives
 from ..script.model import Directive, Scene, Spoken
 from ..state import State
 from ..util import read_json, slug
+from . import theme as themes
 
 OUT = 'build/player'
 STATIC = resources.files('rlyeh') / 'player' / 'static'
@@ -298,12 +299,14 @@ def _foot(project, data):
 
 
 # ───────── 打包 ─────────
-def build(project, on_line=None):
-    """写 build/player/。返回 dict(path, chapters, steps, missing)：missing 里是缺的配音、图片、音效、曲子和不认识的指令。"""
+def build(project, on_line=None, theme=None):
+    """写 build/player/。返回 dict(path, chapters, steps, missing, theme, warnings)：missing 里是缺的配音、图片、音效、曲子和
+    不认识的指令；theme 指定时用这个主题（不写就用 [player] theme）。"""
     out = project.root / OUT
     out.mkdir(parents=True, exist_ok=True)
     for name in ('index.html', 'player.js', 'player.css'):
         (out / name).write_bytes((STATIC / name).read_bytes())
+    theme_info, warnings = themes.write(project, out, theme)
     keep = set()
     chars, who = _chars(project, out, keep)
     data = dict(id=(project.config.get('project') or {}).get('id', 'replay'), lang=project.lang, chars=chars, who=who,
@@ -347,8 +350,9 @@ def build(project, on_line=None):
     cfg = project.config.get('player') or {}
     dates = p.get('session_dates') or []
     span = ' — '.join(str(d).replace('-', '.') for d in ([dates[0], dates[-1]] if len(dates) > 1 else dates))
-    data.update(title=p.get('title', ''), subtitle=p.get('subtitle', ''), die=int(cfg.get('die', 20)),
-                kicker=' · '.join(x for x in ['TRPG REPLAY', span] if x), hit_sounds=cfg.get('hit_sounds') or HIT_SOUNDS)
+    tag = theme_info['text'].get('replayTag', 'TRPG REPLAY')
+    data.update(title=p.get('title', ''), subtitle=p.get('subtitle', ''), die=int(cfg.get('die', 20)), theme=theme_info,
+                kicker=' · '.join(x for x in [tag, span] if x), hit_sounds=cfg.get('hit_sounds') or HIT_SOUNDS)
     data['credits'] = credits(project, data)
     data['title_screen'] = _title_screen(project, data)
     data['foot'] = _foot(project, data)
@@ -359,10 +363,63 @@ def build(project, on_line=None):
     (out / 'data.js').write_text('window.REPLAY = ' + json.dumps(data, ensure_ascii=False) + ';\n', encoding='utf-8')
     for k in report:
         report[k] = sorted(set(report[k]))
-    return dict(path=OUT, chapters=len(data['chapters']), steps=sum(len(c['steps']) for c in data['chapters']), missing=report)
+    return dict(path=OUT, chapters=len(data['chapters']), steps=sum(len(c['steps']) for c in data['chapters']), missing=report,
+                theme=theme_info['id'], warnings=warnings)
 
 
-def data(project):
-    """读回 build/player/data.js（渲染、测试用）。"""
-    text = (project.root / OUT / 'data.js').read_text(encoding='utf-8')
+def data(project, name='data'):
+    """读回 build/player/data.js（或 showcase.js）。"""
+    text = (project.root / OUT / f'{name}.js').read_text(encoding='utf-8')
     return json.loads(text[len('window.REPLAY = '):].rstrip().rstrip(';'))
+
+
+# ───────── 主题预览用的样板戏 ─────────
+SAMPLE = {
+    'zh-CN': dict(chapter='第一章　主题预览', scene='第一幕　样式一览', nar='这是一句旁白：看看字体、字号、颜色和对话框的样子。',
+                  line_a='这是{a}的台词，名牌用的是角色的颜色。', act='（拍了拍桌子）', line_b1='消音词会这样显示：', line_b2='，懂了吧。',
+                  ooc_pl='场外弹幕在右边，像直播聊天栏。', ooc_gm='GM 的弹幕颜色不一样。', skill_a='察觉', skill_b='攻击',
+                  stat_a='力量', stat_b='敏捷', win='{a}胜', item='铜钥匙', round='第二轮', tone_a='自信', tone_b='调侃'),
+    'en': dict(chapter='Chapter 1 Theme preview', scene='Scene 1 Style sheet', nar='This is narration: check the fonts, size, colors and the box.',
+               line_a="This is {a} speaking; the nameplate uses the character's color.", act='*taps the table*',
+               line_b1='Bleeped words look like this: ', line_b2=', got it?', ooc_pl='OOC chat sits on the right, like a stream chat.',
+               ooc_gm='GM messages look different.', skill_a='Perception', skill_b='Attack', stat_a='STR', stat_b='DEX',
+               win='{a} wins', item='Brass key', round='Round 2', tone_a='confident', tone_b='teasing'),
+}
+
+
+def write_showcase(project):
+    """用项目里的角色、背景、道具拼一段样板戏，写 build/player/showcase.js：每种界面元素都出场一次，主题预览截图用。"""
+    d = data(project)
+    sm = SAMPLE['en' if project.lang.startswith('en') else 'zh-CN']
+    chars = [cid for cid, c in d['chars'].items() if c['faces'] and c['kind'] == 'pc'] or \
+            [cid for cid, c in d['chars'].items() if c['faces']]
+    a = chars[0] if chars else next(iter(d['chars']), 'a')
+    b = chars[1] if len(chars) > 1 else a
+    name = lambda cid: d['chars'].get(cid, {}).get('name', cid)   # noqa: E731
+    pl = next((n for n, x in d['players'].items() if not x['gm']), 'Player')
+    gm = next((n for n, x in d['players'].items() if x['gm']), 'GM')
+    item = next(iter(d['items']), sm['item'])
+    steps = [dict(k='do', name='chapter', args=[sm['chapter']]), dict(k='scene', title=sm['scene'])]
+    if d['bg']:
+        bg = d['title_screen'].get('bg') or next(iter(d['bg']))
+        steps.append(dict(k='do', name='bg', args=[bg, *d['title_screen'].get('variants', [])]))
+    steps += [
+        dict(k='nar', id='s-01', who='', tone=None, rich=[['t', sm['nar']]]),
+        dict(k='line', id='s-02', who=a, tone=sm['tone_a'], face=None, rich=[['t', sm['line_a'].format(a=name(a))], ['a', sm['act']]]),
+        dict(k='line', id='s-03', who=b, tone=sm['tone_b'], face=None, rich=[['t', sm['line_b1']], ['b', 'tmd'], ['t', sm['line_b2']]]),
+        dict(k='ooc', id='s-04', who=pl, tone=None, rich=[['t', sm['ooc_pl']]]),
+        dict(k='ooc', id='s-05', who=gm, tone=None, rich=[['t', sm['ooc_gm']]]),
+        dict(k='do', name='roll', args=[a, sm['skill_a'], '17', 'success']),
+        dict(k='do', name='roll', args=[b, sm['skill_b'], '20', 'critical']),
+        dict(k='do', name='battle-start', args=[]),
+        dict(k='do', name='damage', args=[a, '5']),
+        dict(k='do', name='contest', args=[f'{name(a)} {sm["stat_a"]} 15', f'{name(b)} {sm["stat_b"]} 12', sm['win'].format(a=name(a))]),
+        dict(k='do', name='item', args=[item]),
+        dict(k='do', name='round', args=[sm['round']]),
+        dict(k='do', name='battle-end', args=[]),
+        dict(k='do', name='chapter-end', args=[]),
+        dict(k='do', name='credits', args=[]),
+    ]
+    show = dict(d, chapters=[dict(title=sm['chapter'], label=sm['chapter'], steps=steps)], battle=None)
+    (project.root / OUT / 'showcase.js').write_text('window.REPLAY = ' + json.dumps(show, ensure_ascii=False) + ';\n', encoding='utf-8')
+    return steps

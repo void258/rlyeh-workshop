@@ -46,18 +46,22 @@ def settings(project):
 
 
 # ───────── 逐帧渲染画面 ─────────
-async def _page(pw, url, video_path, max_sec, s, project, on_line, tag=''):
-    master = encode.preset(project, 'master')
-    vargs = encode.video_args(master['codec'], master.get('quality', 19), master.get('encoder', 'auto'), s['fps'])
-    ff = subprocess.Popen([encode.ffmpeg(), '-y', '-loglevel', 'error', '-f', 'image2pipe', '-framerate', str(s['fps']),
-                           '-c:v', 'mjpeg', '-i', '-', *vargs, str(video_path)], stdin=subprocess.PIPE)
+async def _launch(pw, s):
     args = ['--enable-gpu-rasterization', '--ignore-gpu-blocklist', '--force-device-scale-factor=1', '--hide-scrollbars']
     if sys.platform == 'win32':
         args.append('--use-angle=d3d11')
     launch = dict(headless=True, args=args)
     if s['browser'] != 'chromium':
         launch['channel'] = s['browser']                       # msedge / chrome：用系统里装好的浏览器
-    browser = await pw.chromium.launch(**launch)
+    return await pw.chromium.launch(**launch)
+
+
+async def _page(pw, url, video_path, max_sec, s, project, on_line, tag=''):
+    master = encode.preset(project, 'master')
+    vargs = encode.video_args(master['codec'], master.get('quality', 19), master.get('encoder', 'auto'), s['fps'])
+    ff = subprocess.Popen([encode.ffmpeg(), '-y', '-loglevel', 'error', '-f', 'image2pipe', '-framerate', str(s['fps']),
+                           '-c:v', 'mjpeg', '-i', '-', *vargs, str(video_path)], stdin=subprocess.PIPE)
+    browser = await _launch(pw, s)
     errors = []
     try:
         page = await browser.new_page(viewport={'width': s['width'], 'height': s['height']}, device_scale_factor=1)
@@ -100,12 +104,17 @@ async def _page(pw, url, video_path, max_sec, s, project, on_line, tag=''):
     return events, vt0 / 1000, n / s['fps'], n
 
 
-async def _render_all(jobs, s, project, on_line):
+def _playwright():
     try:
         from playwright.async_api import async_playwright
     except ImportError as e:
         raise RenderError('playwright is not installed: uv sync --extra render (or pip install "rlyeh-workshop[render]"), '
                           'then playwright install chromium') from e
+    return async_playwright
+
+
+async def _render_all(jobs, s, project, on_line):
+    async_playwright = _playwright()
     sem = asyncio.Semaphore(max(1, s['jobs']))
     async with async_playwright() as pw:
         async def one(url, path, max_sec, tag):
@@ -287,3 +296,97 @@ def render(project, start=None, seconds=0.0, chapters=None, remix=False, name=No
     _mux(project, silent, wav, final)
     return dict(video=final.relative_to(project.root).as_posix(), seconds=round(dur, 2), frames=frames,
                 took=round(time.time() - t_start, 1))
+
+
+# ───────── 主题预览 ─────────
+PREVIEW = 'build/theme-preview'
+# 样板戏每一步开始后多少毫秒截图（这时动画差不多停稳了）
+SHOTS = {'chapter': ('chapter', 2600), 'scene': ('scene', 1300), 'nar': ('narration', 2000), 'line': ('line', 2000),
+         'ooc': ('ooc', 1600), 'roll': ('dice', 1700), 'battle-start': ('battle', 1000), 'damage': ('damage', 420),
+         'contest': ('contest', 2100), 'item': ('item', 1300), 'round': ('round', 650), 'battle-end': ('victory', 1000),
+         'chapter-end': ('chapter-end', 2400), 'credits': ('credits', 9000)}
+
+
+async def _preview(base, out, s):
+    async_playwright = _playwright()
+    shots = []
+    async with async_playwright() as pw:
+        browser = await _launch(pw, s)
+        try:
+            page = await browser.new_page(viewport={'width': s['width'], 'height': s['height']}, device_scale_factor=1)
+            errors = []
+            page.on('pageerror', lambda e: errors.append(str(e)))
+            await page.add_init_script(script=VCLOCK.read_text(encoding='utf-8'))
+            # 标题画面：普通播放模式，载入完再走 3 秒让动画到位
+            await page.goto(base + '?data=showcase')
+            await page.wait_for_selector('.t-load.done', state='attached', timeout=180000)
+            for _ in range(40):
+                await page.evaluate('window.__advance(100)')
+            path = out / '00-title.png'
+            await page.screenshot(path=str(path))
+            shots.append(path)
+            # 样板戏：渲染模式，按每一步开始的时间截图
+            await page.goto(base + '?rec&data=showcase')
+            await page.wait_for_function('typeof window.__go === "function"', timeout=180000)
+            origin = await page.evaluate('performance.timeOrigin')
+            await page.evaluate('window.__go()')
+            pending, seen, counts = [], 0, {}
+            for _ in range(int(180 * 1000 / 50)):                  # 最多走 3 分钟虚拟时间
+                vt = await page.evaluate('window.__advance(50)')
+                events = await page.evaluate(f'window.__rec.events.slice({seen})')
+                seen += len(events)
+                for e in events:
+                    kind = e.get('name') if e.get('k') == 'do' else e.get('k')
+                    if e['type'] == 'step' and kind in SHOTS:
+                        label, delay = SHOTS[kind]
+                        counts[label] = counts.get(label, 0) + 1
+                        pending.append((e['t'] - origin + delay, f'{label}-{counts[label]}' if counts[label] > 1 else label))
+                for due, label in [x for x in pending if x[0] <= vt]:
+                    pending.remove((due, label))
+                    path = out / f'{len(shots):02d}-{label}.png'
+                    await page.screenshot(path=str(path))
+                    shots.append(path)
+                if errors:
+                    raise RenderError(f'player error: {errors[0]}')
+                if 'credits' in counts and not pending:
+                    break
+        finally:
+            await browser.close()
+    return shots
+
+
+def _sheet(shots, path, cols=3, w=640):
+    from PIL import Image, ImageDraw
+
+    from .art import _font
+    h, pad, label = w * 9 // 16, 16, 34
+    rows = (len(shots) + cols - 1) // cols
+    canvas = Image.new('RGB', (cols * (w + pad) + pad, rows * (h + label + pad) + pad), (20, 18, 16))
+    draw = ImageDraw.Draw(canvas)
+    font, _ = _font(20)
+    for i, shot in enumerate(shots):
+        x, y = pad + (i % cols) * (w + pad), pad + (i // cols) * (h + label + pad)
+        with Image.open(shot) as im:
+            canvas.paste(im.convert('RGB').resize((w, h), Image.LANCZOS), (x, y))
+        draw.text((x + 4, y + h + 6), shot.stem, fill=(220, 210, 190), font=font)
+    canvas.save(path)
+
+
+def theme_preview(project, theme=None, on_line=None):
+    """用当前主题（或指定主题）把每种界面元素截一张图，再拼成一张总览：build/theme-preview/<主题>/。"""
+    res = player.build(project, theme=theme)
+    player.write_showcase(project)
+    out = project.root / PREVIEW / res['theme']
+    if out.exists():
+        for f in out.glob('*.png'):
+            f.unlink()
+    out.mkdir(parents=True, exist_ok=True)
+    s = settings(project)
+    with _Server(project) as url:
+        shots = asyncio.run(_preview(url.split('?')[0], out, s))
+    sheet = out.parent / f'{res["theme"]}.png'
+    _sheet(shots, sheet)
+    if on_line:
+        on_line(f'{len(shots)} screenshots')
+    rel = lambda p: p.relative_to(project.root).as_posix()   # noqa: E731
+    return dict(theme=res['theme'], shots=[rel(p) for p in shots], sheet=rel(sheet), warnings=res['warnings'])

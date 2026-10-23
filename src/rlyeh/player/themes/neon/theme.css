@@ -1,0 +1,47 @@
+/* 霓虹终端：扫描线、直角切口、发光描边、等宽小字，名牌出现时闪一下。 */
+
+/* 整个画面压一层扫描线 */
+#stage::after { content: ""; position: absolute; inset: 0; z-index: 70; pointer-events: none; mix-blend-mode: overlay; opacity: .35;
+  background: repeating-linear-gradient(0deg, rgba(255, 255, 255, .08) 0 1px, transparent 1px 4px); }
+
+/* 对话框：左边一条亮青色，右下角一个品红小角标（不用 clip-path：会把伸出框外的名牌一起裁掉） */
+#box { border-left: 4px solid var(--accent); }
+#box::after { content: ""; position: absolute; right: -1px; bottom: -1px; width: 28px; height: 28px;
+  background: linear-gradient(135deg, transparent 50%, var(--accent-hi) 50%); opacity: .8; }
+#box::before { height: 1px; }
+.text { letter-spacing: .02em; }
+.next { border-color: var(--accent); border-radius: 0; }
+
+/* 名牌闪一下再出现 */
+.nameplate .name { font-weight: 700; letter-spacing: .08em; text-shadow: 0 0 12px color-mix(in srgb, var(--c, #29e6ff) 80%, transparent); }
+.nameplate .sub { font-family: var(--font-ui); letter-spacing: .12em; }
+.nameplate::after { background: linear-gradient(90deg, var(--accent), transparent); }
+.nameplate.pop { animation: glitch .45s steps(2) both; }
+@keyframes glitch {
+  0% { opacity: 0; transform: translateX(-12px); filter: hue-rotate(90deg); }
+  30% { opacity: 1; transform: translateX(6px) skewX(-8deg); }
+  60% { transform: translateX(-3px); filter: none; }
+  100% { transform: none; }
+}
+
+/* 场外弹幕：终端里的一行行消息 */
+.bub { border: 1px solid rgba(41, 230, 255, .3); border-left: 3px solid var(--c); }
+.bub .av { border-radius: 0; }
+.bub .who { font-family: var(--font-ui); letter-spacing: .04em; }
+.chat-head i { border-radius: 0; background: var(--accent-hi); box-shadow: 0 0 10px var(--accent-hi); }
+
+/* 骰子面板、头像都是直角 */
+.die-who img, .vs-side img, .log-row .av { border-radius: 0; }
+.d20 .num, .die-skill, .vs-info span, .cc-num, .cc-sub, .t-kicker, .cr-sub, .cr-h { font-family: var(--font-ui); }
+.d20 .num { text-shadow: 0 0 14px var(--accent), 0 2px 3px #000; }
+.dice-panel { box-shadow: 0 0 40px rgba(41, 230, 255, .2), inset 0 0 40px rgba(41, 230, 255, .06); }
+
+/* 横幅：发光细边 */
+.banner::before { box-shadow: 0 0 30px var(--bl); border-width: 1px; }
+.banner b { letter-spacing: .2em; font-style: italic; }
+.banner small { font-family: var(--font-ui); letter-spacing: .5em; }
+
+/* 章节卡：大字带一道青色霓虹 */
+.cc-name span { filter: drop-shadow(0 0 18px rgba(41, 230, 255, .45)); }
+.cc-lines em { border-radius: 0; background: var(--accent-hi); box-shadow: 0 0 12px var(--accent-hi); }
+.t-menu button::before { transform: none; border-color: var(--accent); }

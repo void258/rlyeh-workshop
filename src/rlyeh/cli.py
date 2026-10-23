@@ -9,6 +9,7 @@ from importlib import resources
 from . import SPEC_VERSION, __version__, art, doctor, encode, i18n, importers, music, player, render, sfx, voice
 from .backends import BackendError
 from .backends.worker import WorkerError
+from .player.theme import ThemeError
 from .i18n import t
 from .project import Project, ProjectError, find_root
 from .script import ids as script_ids
@@ -250,13 +251,44 @@ def cmd_music(args):
 
 def cmd_build(args):
     proj = _project(args)
-    res = player.build(proj)
-    lines = [t('cli.build_done', path=res['path'], chapters=res['chapters'], steps=res['steps'])]
+    res = player.build(proj, theme=args.theme)
+    lines = [t('cli.build_done', path=res['path'], chapters=res['chapters'], steps=res['steps']), t('cli.build_theme', theme=res['theme'])]
+    lines += [t('cli.theme_warning', w=w) for w in res['warnings']]
     for k, items in res['missing'].items():
         if items:
             lines.append(t('cli.build_missing', what=t('missing.' + k), n=len(items),
                            items='、'.join(items[:12]) + ('…' if len(items) > 12 else '')))
     _out(args, dict(ok=True, **res), '\n'.join(lines))
+    return 0
+
+
+def cmd_theme(args):
+    proj = _project(args)
+    from .player import theme as themes
+    if args.action == 'list':
+        current = themes.configured(proj)
+        rows = []
+        for tid, path in themes.builtin().items():
+            cfg = themes._load(path)
+            rows.append(dict(id=tid, name=cfg.get('name', tid), description=cfg.get('description', ''), builtin=True))
+        if current not in themes.builtin():
+            cfg = themes._load(themes.locate(proj, current)[0])
+            rows.append(dict(id=current, name=cfg.get('name', current), description=cfg.get('description', ''), builtin=False))
+        lines = [t('cli.theme_list_item', mark='*' if r['id'] == current else ' ', **{k: r[k] for k in ('id', 'name', 'description')})
+                 for r in rows]
+        lines.append(t('cli.theme_current', theme=current))
+        _out(args, dict(ok=True, themes=rows, current=current), '\n'.join(lines))
+    elif args.action == 'new':
+        path = themes.scaffold(proj, args.folder, args.base, args.name)
+        used = themes.use(proj, args.folder)
+        lines = [t('cli.theme_new_done', path=path.relative_to(proj.root).as_posix(), base=args.base),
+                 t('cli.theme_new_used' if used else 'cli.theme_new_kept', folder=args.folder)]
+        _out(args, dict(ok=True, path=path.relative_to(proj.root).as_posix(), used=used), '\n'.join(lines))
+    elif args.action == 'preview':
+        res = render.theme_preview(proj, args.theme, _progress(args))
+        lines = [t('cli.theme_preview_done', theme=res['theme'], n=len(res['shots']), sheet=res['sheet'])]
+        lines += [t('cli.theme_warning', w=w) for w in res['warnings']]
+        _out(args, dict(ok=True, **res), '\n'.join(lines))
     return 0
 
 
@@ -415,7 +447,19 @@ def build_parser():
     p = sub.add_parser('doctor', parents=[common], help='check the environment and backends / 检查环境和后端')
     p.set_defaults(func=cmd_doctor)
     p = sub.add_parser('build', parents=[common], help='build the player / 打包播放器')
+    p.add_argument('--theme', help='use this theme instead of [player] theme / 临时换个主题')
     p.set_defaults(func=cmd_build)
+    p = sub.add_parser('theme', help='player themes / 播放器主题')
+    ths = p.add_subparsers(dest='action', required=True)
+    ths.add_parser('list', parents=[common], help='built-in themes / 列出主题')
+    q = ths.add_parser('new', parents=[common], help='create a project theme / 新建项目主题')
+    q.add_argument('folder', nargs='?', default='theme')
+    q.add_argument('--base', default='dark-fantasy', help='theme to start from / 基于哪个主题')
+    q.add_argument('--name', help='display name / 主题名')
+    q = ths.add_parser('preview', parents=[common], help='screenshots of every UI state / 截图预览')
+    q.add_argument('--theme', help='preview this theme instead of [player] theme / 预览指定主题')
+    for q in ths.choices.values():
+        q.set_defaults(func=cmd_theme)
     p = sub.add_parser('render', parents=[common], help='render the video frame by frame / 逐帧渲染成视频')
     p.add_argument('--from', dest='start', help='start at this line ID / 从这句开始')
     p.add_argument('--seconds', type=float, default=0, help='render only this long / 只渲染这么多秒')
@@ -451,7 +495,7 @@ def main(argv=None):
     except ProjectError as e:
         _out(args, dict(ok=False, error=str(e)), str(e))
         return 2
-    except (voice.VoiceError, art.ArtError, sfx.SfxError, music.MusicError, render.RenderError, encode.EncodeError,
+    except (voice.VoiceError, art.ArtError, sfx.SfxError, music.MusicError, render.RenderError, encode.EncodeError, ThemeError,
             BackendError, WorkerError) as e:
         _out(args, dict(ok=False, error=str(e)), t('cli.error', err=e))
         return 3
