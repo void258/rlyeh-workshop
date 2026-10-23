@@ -1,2 +1,55 @@
-# rlyeh-workshop
-拉莱耶工坊 R'lyeh Workshop — 让你的 AI 把跑团记录做成视觉小说 replay 和视频 · Turn TRPG session logs into visual-novel replays and videos with your own AI agent (Claude Code / Codex / DeepSeek Harness)
+# 拉莱耶工坊 · R'lyeh Workshop
+
+[English](README.en.md) | **中文**
+
+**让你自己的 AI，把跑团记录做成视觉小说式的 replay 和视频。**
+
+把 FVTT 等平台导出的跑团记录交给拉莱耶工坊，由你常用的 AI（Claude Code、Codex、DeepSeek Harness）来润色剧本、设计角色、写美术和音乐提示词；拉莱耶工坊负责配音、质检、消音、立绘后处理、BGM、音效，最后生成一个能在浏览器里播放的视觉小说，以及逐帧渲染出来的视频。选声线、审美术、逐句审听这些需要品味的环节，留给你在图形界面里把关。
+
+> **状态：M0（规格阶段）。** 目前仓库里只有规格文档，还没有可运行的代码。欢迎在 Issues 里讨论设计。
+
+## 它能做什么
+
+- **剧本**：AI 把聊天记录润色成剧本，标好语气、表情和舞台指令；场外闲聊保留成场外弹幕。
+- **配音**：每个角色一种声线，整句生成；语音识别自动质检、自动重做；脏话照写在字幕里，配音里换成「哔」。
+- **美术**：立绘透明背景、多种表情差分、场景和 CG 造型一致。
+- **音乐与音效**：按幕切换的 BGM，战斗自动换战斗曲；骰子、打击、喷火、破门等音效自动跟着演出走。
+- **播放器**：章节卡、立绘调度、场外弹幕聊天栏、d20 掷骰、伤害数字、对抗、CG、片尾字幕。
+- **视频**：逐帧确定性渲染（不掉帧），自动混音，一键压制母版和体积小的 AV1 分享版。
+
+## 支持的 AI harness
+
+| Harness | 接入方式 |
+|---|---|
+| Claude Code | `CLAUDE.md` + `.claude/skills/` + `.mcp.json` |
+| Codex | `AGENTS.md` + `.agents/skills/` + `.codex/config.toml` |
+| DeepSeek Harness | `AGENTS.md` + `.agents/skills/` + MCP 客户端插件 |
+
+三家共用同一个命令行工具 `replay` 和同一个 MCP 服务。详见 [AI 接入](docs/zh/agents.md)。
+
+## 文档
+
+- [总览](docs/zh/overview.md)：设计原则、组成部分、路线图
+- [项目格式](docs/zh/project-format.md)
+- [剧本格式](docs/zh/script-format.md)
+- [流水线](docs/zh/pipeline.md)：每个阶段做什么，以及实战总结的默认规则
+- [AI 接入](docs/zh/agents.md)
+- [后端与授权](docs/zh/backends.md)
+
+## 路线图
+
+| 里程碑 | 内容 |
+|---|---|
+| **M0** ← 当前 | 规格文档 |
+| M1 | 核心流水线与命令行，示例团从头跑到成片 |
+| M2 | MCP 服务与流程手册，接入三家 harness |
+| M3 | Studio 图形界面（中英双语） |
+| M4 | 发布 0.1（先 Windows） |
+
+## 授权
+
+代码以 [Apache License 2.0](LICENSE) 发布。
+
+拉莱耶工坊**不包含、也不分发任何模型权重**。你用到的配音、生图、音乐模型各有各的授权：有的要求署名，有的只能非商用。拉莱耶工坊会在界面里提示，并在片尾自动生成署名。详见 [后端与授权](docs/zh/backends.md)。
+
+做 replay 前，请确认所有玩家同意公开他们的跑团记录。
