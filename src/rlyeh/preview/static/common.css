@@ -1,0 +1,19 @@
+/* 审核页共用的样子：和 Studio 同一套颜色和字体。嵌在 Studio 里（地址带 ?embed）时不显示回首页的链接。 */
+:root{--bg:#141210;--panel:#1d1a17;--panel2:#24201c;--line:#3a332b;--fg:#ece4d6;--mu:#9b9083;--gold:#d9a85b;--gold-hi:#f0c27a;
+--ok:#8fbf7f;--warn:#e0954f;--bad:#e06a5a;--blue:#7fa6d9;color-scheme:dark;
+--sans:"PingFang SC","Microsoft YaHei","Noto Sans SC",system-ui,sans-serif;--serif:"Noto Serif SC","Source Han Serif SC",serif}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0;background:radial-gradient(1200px 600px at 70% -10%,#2a2016 0,transparent 60%),var(--bg);background-attachment:fixed;
+color:var(--fg);font:15px/1.65 var(--sans);min-height:100vh}
+.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:#141210f2;backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+.top .in{margin:0 auto;padding:10px 16px;display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center}
+.top h1{font:600 18px/1.2 var(--serif);margin:0;letter-spacing:.06em}
+.top a{color:var(--gold);font-size:13px}
+.stat{color:var(--mu);font-size:13px}.stat b{color:var(--fg)}
+.btn{border:1px solid var(--line);background:#00000040;color:var(--fg);border-radius:8px;padding:4px 12px;cursor:pointer;font:inherit;font-size:13.5px}
+.btn.on{border-color:var(--gold);color:var(--gold)}
+label.f{font-size:13px;color:var(--mu);cursor:pointer;user-select:none}
+:focus-visible{outline:2px solid var(--gold-hi);outline-offset:2px}
+.embed #home,.embed header a[href="/"]{display:none}
+.embed .top{top:0}

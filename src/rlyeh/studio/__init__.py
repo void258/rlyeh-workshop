@@ -9,6 +9,7 @@
   /api/tasks/done        标记 agent 任务完成（同 replay done）
   /api/run               在后台运行工具任务或阶段（同 rlyeh_run_stage）
   /api/jobs[/<ID>]       后台任务；带 offset 取日志增量
+  /api/script[/file|meta|lint|save|new|ids]   剧本编辑器（见 studio/script.py）
 只监听本机。Host 不是本机的请求一律拒绝（防 DNS 重绑定）；会改东西的 Studio 请求要带 X-Rlyeh 头，
 别的网站跨站发不出带自定义头的请求。
 """
@@ -22,6 +23,7 @@ import urllib.parse
 from importlib import resources
 
 from .. import __version__, i18n, jobs, preview, tasks
+from . import script as scripts
 from ..mcp import stage_command
 from ..project import Project, ProjectError, create, find_root
 from ..util import read_json, write_json
@@ -194,10 +196,13 @@ def make_handler(studio):
         def _api(self, fn, *args, **kw):
             try:
                 self._json(dict(ok=True, **fn(*args, **kw)))
-            except StudioError as e:
+            except scripts.Conflict as e:
+                self._json(dict(ok=False, error=str(e), conflict=e.current), 409)
+            except (StudioError, ProjectError, scripts.ScriptError) as e:
                 self._json(dict(ok=False, error=str(e)), 400)
-            except ProjectError as e:
-                self._json(dict(ok=False, error=str(e)), 400)
+
+        def _lang(self, lang):
+            i18n.set_lang(lang or i18n.detect(studio.project.lang))   # 校验信息跟着界面语言
 
         def _need_project(self):
             if studio.project is None:
@@ -224,6 +229,14 @@ def make_handler(studio):
                 self._need_project() and self._api(lambda: dict(jobs=studio.jobs()))
             elif path.startswith('/api/jobs/'):
                 self._need_project() and self._api(lambda: dict(job=studio.job(path.rsplit('/', 1)[1], q.get('offset', 0))))
+            elif path == '/api/studio/player':
+                self._need_project() and self._api(lambda: dict(built=(studio.project.root / 'build' / 'player' / 'data.js').is_file()))
+            elif path == '/api/script':
+                self._need_project() and self._api(lambda: dict(files=scripts.files(studio.reload())))
+            elif path == '/api/script/file':
+                self._need_project() and self._api(lambda: dict(file=scripts.read(studio.reload(), q.get('path'))))
+            elif path == '/api/script/meta':
+                self._need_project() and self._api(lambda: scripts.meta(studio.reload()))
             else:
                 studio.reload()
                 super().do_GET()
@@ -232,7 +245,7 @@ def make_handler(studio):
             if not self._local():
                 return
             path = urllib.parse.urlparse(self.path).path
-            if not (path.startswith('/api/studio/') or path in ('/api/tasks/done', '/api/run')):
+            if not (path.startswith(('/api/studio/', '/api/script/')) or path in ('/api/tasks/done', '/api/run')):
                 studio.reload()
                 super().do_POST()
                 return
@@ -256,6 +269,17 @@ def make_handler(studio):
                 self._api(lambda: dict(record=studio.done(body.get('id', ''), body.get('note', ''))))
             elif path == '/api/run':
                 self._api(lambda: dict(job=studio.run(body.get('task'), body.get('stage'), body.get('args'))))
+            elif path == '/api/script/lint':
+                self._lang(body.get('lang'))
+                self._api(lambda: dict(issues=scripts.check(studio.reload(), body.get('path'), body.get('text', ''))))
+            elif path == '/api/script/save':
+                self._api(lambda: scripts.save(studio.reload(), body.get('path'), body.get('text', ''), body.get('base'),
+                                               bool(body.get('force'))))
+            elif path == '/api/script/new':
+                self._api(lambda: scripts.new_chapter(studio.reload(), body.get('title')))
+            elif path == '/api/script/ids':
+                self._lang(body.get('lang'))
+                self._api(lambda: scripts.assign_ids(studio.reload()))
             else:
                 self._send(404, b'not found', 'text/plain')
 

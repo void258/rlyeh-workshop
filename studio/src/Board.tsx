@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent as ReactMouseEvent } from 'react'
 import { api, isActive, sameCommand, type Board, type Job, type Task } from './api'
 import { hasKey, useI18n, type T } from './i18n'
 import { JobPanel } from './Jobs'
+import { reviewHash } from './Review'
 
 const STAGES = ['import', 'script', 'cast', 'voice', 'art', 'sfx', 'music', 'player', 'render'] as const
 const FINISHED = new Set(['done', 'skip'])
@@ -25,20 +26,37 @@ function valueText(v: unknown, t: T): string {
   return String(v)
 }
 
+// 剧本校验的错误：点一下在编辑器里跳到那一行
+function scriptLink(x: unknown) {
+  const o = x as Record<string, unknown>
+  if (!o || typeof o !== 'object' || typeof o.file !== 'string' || typeof o.line !== 'number') return null
+  const name = o.file.split(/[\\/]/).pop()
+  return `#/script?file=${encodeURIComponent(`script/${name}`)}&line=${o.line}`
+}
+
 function Detail({ detail }: { detail?: Record<string, unknown> }) {
   const { t } = useI18n()
   const rows = Object.entries(detail ?? {}).filter(
-    ([k, v]) => k !== 'key' && v !== null && v !== '' && v !== 0 && !(Array.isArray(v) && !v.length),
+    ([k, v]) => k !== 'key' && k !== 'reason' && v !== null && v !== '' && v !== 0 && !(Array.isArray(v) && !v.length),
   )
   if (!rows.length) return null
   return (
     <dl className="detail">
       {rows.map(([k, v]) => {
         const key = `detail.${k}`
+        const links = k === 'errors' && Array.isArray(v) ? v.slice(0, 8).map((x) => [scriptLink(x), itemText(x)] as const) : null
         return (
           <div key={k}>
             <dt>{hasKey(key) ? t(key) : k}</dt>
-            <dd>{valueText(v, t)}</dd>
+            <dd>
+              {links && links.every(([href]) => href)
+                ? links.map(([href, text], i) => (
+                    <a key={i} className="jump" href={href ?? undefined}>
+                      {text}
+                    </a>
+                  ))
+                : valueText(v, t)}
+            </dd>
           </div>
         )
       })}
@@ -46,17 +64,40 @@ function Detail({ detail }: { detail?: Record<string, unknown> }) {
   )
 }
 
+function Reason({ detail }: { detail?: Record<string, unknown> }) {
+  const { t } = useI18n()
+  const code = typeof detail?.reason === 'string' ? `reason.${detail.reason}` : null
+  if (!code) return null
+  return <p className="muted small">{hasKey(code) ? t(code) : String(detail?.reason)}</p>
+}
+
 interface CardProps {
   task: Task
   byId: Record<string, Task>
   jobs: Job[]
   big?: boolean
+  isNext?: boolean
   onRun: (task: Task) => void
   onDone: (task: Task) => void
 }
 
-function TaskCard({ task, byId, jobs, big, onRun, onDone }: CardProps) {
+function TaskCard({ task, byId, jobs, big, isNext, onRun, onDone }: CardProps) {
   const { t } = useI18n()
+  if (isNext) {
+    // 下一步已经在最上面展开了：这里只留一行，点了回到上面
+    const top = (e: ReactMouseEvent) => {
+      e.preventDefault()
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+    }
+    return (
+      <a className={`task brief ${task.status}`} href="#/board" onClick={top}>
+        <span className={`status ${task.status}`}>{t(`status.${task.status}`)}</span>
+        <span className={`kind ${task.kind}`}>{t(`kind.${task.kind}`)}</span>
+        <h3>{task.title}</h3>
+        <span className="badge next">↑ {t('board.next')}</span>
+      </a>
+    )
+  }
   const blocked = (task.blocked_by ?? []).filter((id) => byId[id] && !FINISHED.has(byId[id].status))
   const job = jobs.find((j) => isActive(j) && sameCommand(j.command, task.command))
   const open = !FINISHED.has(task.status)
@@ -70,6 +111,7 @@ function TaskCard({ task, byId, jobs, big, onRun, onDone }: CardProps) {
         <code className="tid">{task.id}</code>
       </div>
       {open && <Detail detail={task.detail} />}
+      {task.status === 'skip' && <Reason detail={task.detail} />}
       {open && blocked.length > 0 && <p className="muted small">{t('task.blocked', { ids: blocked.join(', ') })}</p>}
       {open && task.kind === 'agent' && (
         <p className="hint">{task.playbook ? t('task.agent', { skill: task.playbook }) : t('task.agentNoSkill')}</p>
@@ -92,8 +134,8 @@ function TaskCard({ task, byId, jobs, big, onRun, onDone }: CardProps) {
             </button>
           ) : null)}
         {task.kind === 'review' && task.page && open && (
-          <a className="button primary" href={task.page} target="_blank" rel="noreferrer">
-            {t('task.openReview')} ↗
+          <a className="button primary" href={reviewHash(task.page) ?? task.page}>
+            {t('task.openReview')}
           </a>
         )}
         {task.kind === 'agent' && open && task.detail && 'key' in task.detail && (
@@ -184,7 +226,7 @@ export default function BoardPage({ jobs, focus, onStarted }: { jobs: Job[]; foc
                 )}
               </header>
               {list.map((x) => (
-                <TaskCard key={x.id} task={x} {...cardProps} />
+                <TaskCard key={x.id} task={x} isNext={x.id === board.next} {...cardProps} />
               ))}
             </section>
           )

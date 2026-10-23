@@ -117,3 +117,60 @@ def test_board_and_jobs(server, example_project):
 
     code, voices, _ = server('/api/voices')                  # 审核页接口照常可用
     assert code == 200 and voices['meta']['title']
+
+
+def test_script_editor(server, example_project):
+    root = example_project.root
+    server('/api/studio/open', {'path': str(root)})
+    code, data, _ = server('/api/script')
+    assert code == 200 and data['files'][0]['number'] == 1 and data['files'][0]['lines'] == 24
+    rel = data['files'][0]['path']
+    assert rel.startswith('script/') and data['files'][0]['errors'] == 0
+
+    doc = server('/api/script/file?path=' + urllib.request.quote(rel))[1]['file']
+    assert doc['text'].startswith('---\n') and len(doc['version']) == 16
+    assert server('/api/script/file?path=replay.toml')[0] == 400                 # 只认 script/ 下面的 .md
+    assert server('/api/script/file?path=script/../replay.toml')[0] == 400
+
+    # 没保存的内容也能校验：说话人不在角色表、没 ID
+    text = doc['text'] + '\n路人甲：〔大喊〕快跑！\n'
+    issues = server('/api/script/lint', {'path': rel, 'text': text, 'lang': 'zh'})[1]['issues']
+    last = text.count('\n')
+    codes = {i['code'] for i in issues if i['line'] == last}
+    assert {'lint.unknown_speaker', 'lint.no_id'} <= codes
+    en = server('/api/script/lint', {'path': rel, 'text': text, 'lang': 'en'})[1]['issues']
+    assert any('not in cast.yaml' in i['message'] for i in en)
+
+    # 保存：带上打开时的版本；删掉的台词 ID 会报出来
+    first_id = next(line for line in doc['text'].split('\n') if ' ^c1-0001' in line)
+    shorter = doc['text'].replace(first_id + '\n', '')
+    code, saved, _ = server('/api/script/save', {'path': rel, 'text': shorter, 'base': doc['version']})
+    assert code == 200 and saved['removed'] == ['c1-0001']
+    assert (root / rel).read_text(encoding='utf-8') == shorter
+    code, data, _ = server('/api/script/save', {'path': rel, 'text': doc['text'], 'base': doc['version']})
+    assert code == 409 and data['conflict']['version'] == saved['version']   # 文件已经变了：不覆盖
+    code, data, _ = server('/api/script/save', {'path': rel, 'text': doc['text'], 'base': doc['version'], 'force': True})
+    assert code == 200 and (root / rel).read_text(encoding='utf-8') == doc['text']
+
+    # 新建章节、补台词 ID
+    code, data, _ = server('/api/script/new', {'title': '尾声'})
+    assert code == 200 and data['path'] == 'script/02-weisheng.md'
+    new = root / data['path']
+    assert new.read_text(encoding='utf-8').startswith('---\nchapter: 2\ntitle: 尾声\nlang: zh-CN\n---\n\n【章节：尾声】')
+    assert server('/api/script/new', {'title': ''})[0] == 400
+    new.write_text(new.read_text(encoding='utf-8') + '旁白：〔平静〕雾散了。\n', encoding='utf-8')
+    code, data, _ = server('/api/script/ids', {'lang': 'zh'})
+    assert code == 200 and data['assigned'] == 1 and new.read_text(encoding='utf-8').rstrip().endswith('^c2-0001')
+
+    meta = server('/api/script/meta')[1]
+    arlo = next(s for s in meta['speakers'] if s['id'] == 'arlo')
+    assert '阿洛' in arlo['names'] and arlo['expressions']
+    assert any(d['name'] == 'fx' and '特效' in d['aliases'] for d in meta['directives'])
+    assert 'shake' in meta['enums']['fx'] and meta['players'] and meta['cues']
+
+
+def test_review_pages_shared_style(server):
+    code, css, headers = server('/static/common.css', raw=True)                # 不需要打开项目
+    assert code == 200 and headers['Content-Type'].startswith('text/css') and b'[hidden]' in css
+    assert server('/static/common.js', raw=True)[0] == 200
+    assert server('/api/studio/player')[0] == 409

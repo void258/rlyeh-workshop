@@ -78,7 +78,49 @@ export interface JobLog extends Job {
   result?: { ok?: boolean; error?: string } | null
 }
 
-export class ApiError extends Error {}
+export interface ScriptFile {
+  path: string
+  number: number
+  title: string
+  lines: number
+  errors: number
+  warnings: number
+}
+
+export interface ScriptDoc {
+  path: string
+  text: string
+  version: string
+}
+
+export interface Issue {
+  level: 'error' | 'warning'
+  code: string
+  file: string
+  line: number
+  message: string
+}
+
+export interface ScriptMeta {
+  lang: string
+  speakers: { id: string; names: string[]; kind: string; expressions: string[] }[]
+  narrators: string[]
+  players: string[]
+  directives: { name: string; aliases: string[]; params: { name: string; kind: string; optional: boolean; rest: boolean }[] }[]
+  enums: Record<string, Record<string, string[]>>
+  cues: { id: string; names: string[] }[]
+  sounds: { id: string; aliases: string[] }[]
+}
+
+export class ApiError extends Error {
+  status: number
+  data: Record<string, unknown>
+  constructor(message: string, status = 0, data: Record<string, unknown> = {}) {
+    super(message)
+    this.status = status
+    this.data = data
+  }
+}
 
 async function call<T>(method: 'GET' | 'POST', url: string, body?: unknown): Promise<T> {
   const init: RequestInit = { method }
@@ -91,9 +133,9 @@ async function call<T>(method: 'GET' | 'POST', url: string, body?: unknown): Pro
   try {
     data = await res.json()
   } catch {
-    throw new ApiError(`HTTP ${res.status}`)
+    throw new ApiError(`HTTP ${res.status}`, res.status)
   }
-  if (!data.ok) throw new ApiError(data.error || `HTTP ${res.status}`)
+  if (!data.ok) throw new ApiError(data.error || `HTTP ${res.status}`, res.status, data as Record<string, unknown>)
   return data
 }
 
@@ -111,6 +153,15 @@ export const api = {
   run: (task: string) => call<{ job: Job }>('POST', '/api/run', { task }),
   jobs: () => call<{ jobs: Job[] }>('GET', '/api/jobs'),
   job: (id: string, offset: number) => call<{ job: JobLog }>('GET', `/api/jobs/${q(id)}?offset=${offset}`),
+  playerBuilt: () => call<{ built: boolean }>('GET', '/api/studio/player'),
+  scripts: () => call<{ files: ScriptFile[] }>('GET', '/api/script'),
+  script: (path: string) => call<{ file: ScriptDoc }>('GET', `/api/script/file?path=${q(path)}`),
+  scriptMeta: () => call<ScriptMeta>('GET', '/api/script/meta'),
+  lintScript: (path: string, text: string, lang: string) => call<{ issues: Issue[] }>('POST', '/api/script/lint', { path, text, lang }),
+  saveScript: (path: string, text: string, base: string, force = false) =>
+    call<{ path: string; version: string; removed: string[] }>('POST', '/api/script/save', { path, text, base, force }),
+  newChapter: (title: string) => call<{ path: string }>('POST', '/api/script/new', { title }),
+  assignIds: (lang: string) => call<{ assigned: number; message: string }>('POST', '/api/script/ids', { lang }),
 }
 
 export const isActive = (j: Job) => j.status === 'queued' || j.status === 'running'

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react'
 import { api, isActive, type Job, type ProjectInfo, type StudioState } from './api'
 import BoardPage from './Board'
 import Home from './Home'
@@ -6,15 +6,16 @@ import { LangContext, saveLang, savedLang, toLang, translator, useI18n, type Lan
 import JobsPage from './Jobs'
 import Review from './Review'
 
-type Route = 'board' | 'jobs' | 'review'
-const ROUTES: Route[] = ['board', 'jobs', 'review']
+// 编辑器（CodeMirror）单独打包，用到剧本页时才加载
+const Script = lazy(() => import('./Script'))
 
-function readRoute(): { route: Route; id: string | null } {
+type Route = 'board' | 'script' | 'review' | 'jobs'
+const ROUTES: Route[] = ['board', 'script', 'review', 'jobs']
+
+function readRoute(): { route: Route; id: string | null; page: string | null } {
   const [path, query] = location.hash.replace(/^#\/?/, '').split('?')
-  return {
-    route: ROUTES.includes(path as Route) ? (path as Route) : 'board',
-    id: new URLSearchParams(query ?? '').get('id'),
-  }
+  const q = new URLSearchParams(query ?? '')
+  return { route: ROUTES.includes(path as Route) ? (path as Route) : 'board', id: q.get('id'), page: q.get('page') }
 }
 
 function useRoute() {
@@ -42,7 +43,7 @@ function useJobs() {
 
 function Shell({ project, onClosed }: { project: ProjectInfo; onClosed: () => void }) {
   const { t, lang, setLang } = useI18n()
-  const { route, id } = useRoute()
+  const { route, id, page } = useRoute()
   const { jobs, reload } = useJobs()
   const [focus, setFocus] = useState<string | null>(null)
   const running = jobs.find(isActive)
@@ -86,10 +87,15 @@ function Shell({ project, onClosed }: { project: ProjectInfo; onClosed: () => vo
           </a>
         ))}
       </nav>
-      <main className="content">
+      <main className={`content route-${route}`}>
         {route === 'board' && <BoardPage jobs={jobs} focus={focus} onStarted={started} />}
+        {route === 'script' && (
+          <Suspense fallback={<p className="muted">{t('loading')}</p>}>
+            <Script />
+          </Suspense>
+        )}
         {route === 'jobs' && <JobsPage jobs={jobs} selected={id ?? focus ?? jobs[0]?.id ?? null} />}
-        {route === 'review' && <Review />}
+        {route === 'review' && <Review page={page} />}
       </main>
     </div>
   )

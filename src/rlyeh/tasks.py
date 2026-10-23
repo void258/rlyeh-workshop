@@ -67,10 +67,12 @@ class Planner:
         status = 'done' if rec and rec.get('key') == key else ('stale' if rec else 'todo')
         self._add(tid, 'agent', status=status, key=key, **kw)
 
-    def _add(self, tid, kind, status, key=None, **kw):
+    def _add(self, tid, kind, status, key=None, reason=None, **kw):
         task = Task(id=tid, kind=kind, stage=tid.split('.')[0], status=status, title=t('task.' + tid), **kw)
         if key is not None:
             task.detail['key'] = key                 # replay done 记下的就是它
+        if status == 'skip' and reason:
+            task.detail['reason'] = reason           # 为什么用不上：no_logs · placeholder_tts · no_asr · no_cues
         self.tasks.append(task)
         return task
 
@@ -89,7 +91,7 @@ class Planner:
             stale = not events.exists() or _mtime(raw) > events.stat().st_mtime
             self._add('import.run', 'tool', 'todo' if stale else 'done', command=['import'], inputs=['logs/raw/'])
         else:
-            self._add('import.run', 'tool', 'skip', detail=dict(reason='no logs in logs/raw'))
+            self._add('import.run', 'tool', 'skip', reason='no_logs')
 
         # 剧本：从记录写剧本是主观的活，靠 replay done 记下；没有记录但剧本比记录新，也当作写过了
         if events.exists():
@@ -124,11 +126,11 @@ class Planner:
         placeholder = tts == 'placeholder'
         self._add('voice.design', 'tool', 'todo' if need_design and not placeholder else ('skip' if placeholder else 'done'),
                   command=['voice', 'design', '--chars', ','.join(need_design)] if need_design else ['voice', 'design'],
-                  detail=dict(characters=need_design), blocked_by=['cast.write'])
+                  detail=dict(characters=need_design), blocked_by=['cast.write'], reason='placeholder_tts')
         unpicked = [c.id for c in chars if c.id in cands and voice.reference(p, c.id) is None]
         status = 'skip' if placeholder else 'review' if unpicked else 'todo' if need_design else 'done'
         self._add('voice.pick', 'review', status,
-                  page='/voices', detail=dict(characters=unpicked), blocked_by=['voice.design'])
+                  page='/voices', detail=dict(characters=unpicked), blocked_by=['voice.design'], reason='placeholder_tts')
         vs = voice.summary(p)
         build_status = 'todo' if vs['todo'] else ('stale' if vs['stale'] else 'done')
         self._add('voice.build', 'tool', build_status, command=['voice', 'build'], blocked_by=['voice.pick', 'script.ids'],
@@ -138,7 +140,7 @@ class Planner:
         built = [it.id for _, it, _, _ in voice.lines(p) if (root / voice.VOICE_DIR / f'{it.id}.wav').exists()]
         unchecked = [i for i in built if i not in qa_rep]
         self._add('voice.qa', 'tool', 'skip' if asr == 'none' else ('todo' if unchecked else 'done'), command=['voice', 'qa'],
-                  detail=dict(unchecked=len(unchecked)), blocked_by=['voice.build'])
+                  detail=dict(unchecked=len(unchecked)), blocked_by=['voice.build'], reason='no_asr')
         bad = voice.failed(p)
         if bad:                                      # 质检不合格的句子：AI 决定改读法、重做，还是接受（replay done）
             self._agent('voice.fix', digest(bad), playbook='rlyeh-voice', inputs=[voice.QA_REPORT], blocked_by=['voice.qa'],
@@ -191,12 +193,12 @@ class Planner:
         check = read_json(root / music.CHECK, {})
         unchecked = [k for k, x in takes.items() if cues.get(x['cue'], {}).get('instrumental') and k not in check]
         self._add('music.check', 'tool', 'skip' if asr == 'none' else ('todo' if unchecked else 'done'),
-                  command=['music', 'check'], blocked_by=['music.gen'])
+                  command=['music', 'check'], blocked_by=['music.gen'], reason='no_asr')
         reviews = read_json(root / music.REVIEW, {})
         unpicked_cues = [c for c in cues if not music.final(p, c) or (reviews.get(c) or {}).get('status') != 'approved']
         status = 'review' if unpicked_cues and takes else 'todo' if unpicked_cues else 'done' if cues else 'skip'
         self._add('music.pick', 'review', status,
-                  page='/review/music', detail=dict(cues=unpicked_cues), blocked_by=['music.gen'])
+                  page='/review/music', detail=dict(cues=unpicked_cues), blocked_by=['music.gen'], reason='no_cues')
 
         # 主题（可选）：没设主题就提一句，让 AI 按团的气质设计一套
         if (p.config.get('player') or {}).get('theme'):

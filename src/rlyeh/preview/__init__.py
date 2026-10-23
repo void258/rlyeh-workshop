@@ -19,6 +19,7 @@ from ..state import State
 from ..util import read_json, save_marks
 
 STATIC = resources.files('rlyeh') / 'preview' / 'static'
+SHARED = {'/static/common.css': 'text/css; charset=utf-8', '/static/common.js': 'text/javascript; charset=utf-8'}
 PAGES = {'/': 'index.html', '/voices': 'voices.html', '/review/voice': 'review.html', '/review/art': 'art.html',
          '/review/music': 'music.html'}
 
@@ -148,6 +149,9 @@ def make_handler(source):
 
         def do_GET(self):
             path = urllib.parse.unquote(urllib.parse.urlparse(self.path).path)
+            if path in SHARED:                              # 审核页共用的样式和脚本，不需要项目
+                self._send(200, (STATIC / path.rsplit('/', 1)[1]).read_bytes(), SHARED[path])
+                return
             project = self._project()
             if project is None:
                 return
