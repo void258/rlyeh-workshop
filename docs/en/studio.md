@@ -14,7 +14,7 @@ replay studio --no-browser      # don't open the browser
 
 The default address is `http://127.0.0.1:8766/`; if the port is taken another one is used, and the command prints the real address. It is the same server as `replay preview`: review pages, the player and `/files/` stay at their usual addresses, so review links your AI gets over MCP open here too.
 
-## What's there now (M3, first two batches)
+## What's there
 
 - **Home**: create a project (where, folder name, title, script language), open a project (browse local folders, with projects marked; a subfolder of a project works too), recent projects.
 - **Task board**: every task by stage (same as `replay next --all`), with the next one on top.
@@ -31,10 +31,22 @@ The default address is `http://127.0.0.1:8766/`; if the port is taken another on
   - If the file changes outside the editor (your AI, another editor), it reloads automatically when you have no unsaved changes; otherwise it shows the conflict and lets you load their version or overwrite with yours.
   - Unsaved changes survive switching chapters or pages; `Ctrl+S` saves; you can add a chapter and assign line IDs.
 - **Review**: voice picking, line review, art review, music and the player all live inside Studio with its look; each can also open in a new tab.
+- **AI**:
+  - Pick which AI to use (Claude Code, Codex, DeepSeek Harness), see whether it's installed, and export the playbook and MCP config in one click (same as `replay export-agent`).
+  - "Getting started" gives the commands to enter the project folder and start the AI, plus an opening message, each with a copy button. **Studio never launches an AI for you**, so you stay in control of usage.
+  - "What your AI has done" lists the tasks it reported finished and the jobs running; review requests it makes with `rlyeh_request_review` show up here, with a count in the navigation.
+- **Video**:
+  - Build the player and watch it inside Studio.
+  - Render everything, one chapter, a test clip from a given line, or remix the audio only; while rendering it shows the percentage, time used and time left (the player reports progress in render mode, and `replay render` writes a `steps done/total` line every 10 seconds of video).
+  - Encode the share and compat versions; play finished videos on the page (with seeking) or show them in their folder.
+- **Settings**:
+  - Pick the backend for each job (images, voice design, voices, recognition QA, bleep alignment, music) from a list that marks GPU needs and commercial use; this edits `[backends]` in `replay.toml` and keeps its comments.
+  - Model and reasoning effort for each AI (`[harness.*]`).
+  - Environment check (same as `replay doctor`): ✓ / ! / ✗ for each item, with how to fix what doesn't work.
 - **Jobs**: one runs at a time and the rest queue; live logs and the command's result; jobs finish even if you close the page.
 - **Chinese and English UI**: switch at the top right; until you choose, it follows the project language.
 
-Last batch: the agent panel (export config, show progress, flag reviews), backend settings and environment checks, and the render and encode page. Studio never launches an AI for you, so you stay in control of usage.
+M3 acceptance: in a clean copy of the sample session, go from import to finished video using only Studio pages (export the config, run tasks from "Next", review art, pick music, render, encode), without touching the command line.
 
 ## Security
 
@@ -66,8 +78,17 @@ Last batch: the agent panel (export config, show progress, flag reviews), backen
 | `POST /api/script/new` `{title}` | Add the next chapter |
 | `POST /api/script/ids` | Assign line IDs (same as `replay ids`) |
 | `GET /api/script/meta` | Names for completion: characters and expressions, OOC players, directions and parameters, enum values, cues, sounds |
+| `GET /api/studio/attention` | Navigation badges: tasks waiting for review, open review requests |
+| `GET /api/agent?lang=` | Agent panel: default AI, installed or not, export record, launch commands, opening message, recently finished tasks, review requests |
+| `POST /api/agent/export` `{harness, lang, force}` | Export the config (same as `replay export-agent`) |
+| `POST /api/agent/request` `{index}` | Mark a review request handled |
+| `GET /api/settings` | Current and available backends per job, model settings per AI |
+| `POST /api/settings` `{table, key, value}` | Edit `replay.toml`: only backends in `[backends]` and models in `[harness.*]`; an empty `value` removes the entry |
+| `GET /api/doctor?lang=` | Environment check (same as `replay doctor`) |
+| `GET /api/video` | Video page: video files, whether the player is built, chapters, last video length, tools for rendering and encoding |
+| `POST /api/reveal` `{path}` | Show a project file in the file manager |
 
-The review pages' existing endpoints (`/api/voices`, `/api/lines`, `/api/art`, `/api/music` and their POSTs) are unchanged; they return 409 while no project is open. The review pages share `/static/common.css` and `/static/common.js`; with `?embed` in the address (inside Studio) they hide the link back to the home page.
+`/files/` supports `Range` requests, so videos can be seeked. The review pages' existing endpoints (`/api/voices`, `/api/lines`, `/api/art`, `/api/music` and their POSTs) are unchanged; they return 409 while no project is open. The review pages share `/static/common.css` and `/static/common.js`; with `?embed` in the address (inside Studio) they hide the link back to the home page.
 
 ## Development
 

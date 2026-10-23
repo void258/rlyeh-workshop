@@ -10,6 +10,7 @@
 """
 import http.server
 import json
+import re
 import urllib.parse
 from importlib import resources
 
@@ -142,6 +143,44 @@ def make_handler(source):
         def _json(self, data, code=200):
             self._send(code, json.dumps(data, ensure_ascii=False).encode('utf-8'), 'application/json; charset=utf-8')
 
+        def _file(self, target, ctype):
+            """发文件：分块读，支持 Range（视频、长音频才能拖进度条）。"""
+            size = target.stat().st_size
+            start, end, code = 0, size - 1, 200
+            m = re.fullmatch(r'bytes=(\d*)-(\d*)', (self.headers.get('Range') or '').strip())
+            if m and (m.group(1) or m.group(2)):
+                if m.group(1):
+                    start = int(m.group(1))
+                    end = min(int(m.group(2)), size - 1) if m.group(2) else size - 1
+                else:
+                    start = max(0, size - int(m.group(2)))
+                if start > end or start >= size:
+                    self.send_response(416)
+                    self.send_header('Content-Range', f'bytes */{size}')
+                    self.end_headers()
+                    return
+                code = 206
+            self.send_response(code)
+            self.send_header('Content-Type', ctype)
+            self.send_header('Content-Length', str(end - start + 1))
+            self.send_header('Accept-Ranges', 'bytes')
+            self.send_header('Cache-Control', 'no-store')
+            if code == 206:
+                self.send_header('Content-Range', f'bytes {start}-{end}/{size}')
+            self.end_headers()
+            with open(target, 'rb') as f:
+                f.seek(start)
+                left = end - start + 1
+                try:
+                    while left > 0:
+                        chunk = f.read(min(1 << 20, left))
+                        if not chunk:
+                            break
+                        self.wfile.write(chunk)
+                        left -= len(chunk)
+                except (BrokenPipeError, ConnectionResetError, ConnectionAbortedError):
+                    pass                                    # 浏览器拖进度条时会断开旧请求
+
         def _project(self):
             if ctx.project is None:
                 self._json(dict(ok=False, error='no project is open'), 409)
@@ -177,9 +216,9 @@ def make_handler(source):
                     return
                 ctype = {'.wav': 'audio/wav', '.flac': 'audio/flac', '.mp3': 'audio/mpeg', '.ogg': 'audio/ogg',
                          '.png': 'image/png', '.webp': 'image/webp', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg',
-                         '.json': 'application/json', '.html': 'text/html; charset=utf-8',
+                         '.json': 'application/json', '.html': 'text/html; charset=utf-8', '.mp4': 'video/mp4',
                          '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8'}.get(target.suffix.lower(), 'application/octet-stream')
-                self._send(200, target.read_bytes(), ctype)
+                self._file(target, ctype)
             else:
                 self._send(404, b'not found', 'text/plain')
 

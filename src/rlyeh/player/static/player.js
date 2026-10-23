@@ -822,9 +822,14 @@
 
   // ───────── 主循环 ─────────
   async function run(g) {
+    if (REC && RECLOG.from == null) {                  // 渲染进度：从第几步到第几步（replay render 的日志里报百分比）
+      RECLOG.from = S.pc;
+      RECLOG.to = CHAPTER != null ? CH_START[CHAPTER + 1] : STEPS.length;
+    }
     try {
       while (g === S.gen && S.pc < STEPS.length && !(REC && CHAPTER != null && S.pc >= CH_START[CHAPTER + 1])) {
         const s = STEPS[S.pc++];
+        RECLOG.pc = S.pc;
         log({ type: 'step', i: S.pc - 1, k: s.k, name: s.name });
         if (isText(s)) { showText(s); await waitAdvance(); stopVoice(); }
         else if (s.k === 'scene') await doScene(s.title);

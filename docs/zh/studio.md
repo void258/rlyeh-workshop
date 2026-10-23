@@ -14,7 +14,7 @@ replay studio --no-browser    # 不自动打开浏览器
 
 默认地址是 `http://127.0.0.1:8766/`，端口被占时自动换一个，命令行会打印实际地址。它和 `replay preview` 是同一个服务：审核页、播放器、`/files/` 都在原来的地址上，AI 通过 MCP 拿到的审核页链接也能直接打开。
 
-## 现在有什么（M3 前两批）
+## 有什么
 
 - **首页**：新建项目（放在哪、文件夹名、标题、剧本语言）、打开项目（浏览本机文件夹，项目会标出来；选到项目里的子文件夹也行）、最近打开的项目。
 - **任务看板**：按阶段列出全部任务（和 `replay next --all` 一样），最上面是下一步。
@@ -31,10 +31,22 @@ replay studio --no-browser    # 不自动打开浏览器
   - 外面（AI、别的编辑器）改了文件：没改动时自动载入；有没保存的修改时提示冲突，选载入外面的版本还是用自己的覆盖。
   - 没保存的修改切到别的章节、别的页面再回来还在；`Ctrl+S` 保存；可以新建章节、补台词 ID。
 - **审核**：选声线、逐句审听、美术审核、BGM 试听、播放器都在 Studio 里，样式和 Studio 一致；也可以在新标签页打开。
+- **AI**：
+  - 选用哪家（Claude Code、Codex、DeepSeek Harness），看本机装没装，一键导出流程手册和 MCP 配置（同 `replay export-agent`）。
+  - 「怎么开始」给出进项目文件夹、启动 AI 的命令和开场白，都能一键复制。**Studio 不替你启动 AI**，用多少额度由你自己掌握。
+  - 「AI 做到哪了」列出 AI 报告完成的任务和正在跑的后台任务；AI 用 `rlyeh_request_review` 请你审核的条目也在这里，导航栏上有数字提醒。
+- **出片**：
+  - 打包播放器、在 Studio 里看。
+  - 渲染整部、只渲染某一章、从某一句开始试渲染一段、只重新混音；渲染时显示百分比、已用时间和预计剩余时间（播放器在渲染模式下报告进度，`replay render` 每 10 秒画面写一行 `steps 已渲染/总数`）。
+  - 压制分享版、兼容版；做好的视频直接在页面里播放（支持拖进度条），或者在文件夹中显示。
+- **设置**：
+  - 各类后端（生图、声线设计、配音、识别质检、消音对齐、音乐）从下拉框里选，标出要不要显卡、能不能商用；改的是 `replay.toml` 的 `[backends]`，注释原样保留。
+  - 每家 AI 的模型和推理强度（`[harness.*]`）。
+  - 环境检查（同 `replay doctor`）：每项是 ✓ / ! / ✗，不能用的告诉你怎么修。
 - **后台任务**：一次只跑一个，后来的排队；实时日志和命令结果；关掉页面也会跑完。
 - **中英界面**：右上角切换；没选过时跟着项目语言。
 
-最后一批：AI 面板（导出配置、显示进度、提醒审核）、后端设置和环境检查、渲染压制页。Studio 不会替你启动 AI，用多少额度由你自己掌握。
+M3 的验收：在一份干净的示例团里，只用 Studio 的页面（导出配置、按「下一步」运行任务、审美术、挑 BGM、渲染、压制）从导入做到成片，不碰命令行。
 
 ## 安全
 
@@ -66,8 +78,17 @@ replay studio --no-browser    # 不自动打开浏览器
 | `POST /api/script/new` `{title}` | 新建下一章 |
 | `POST /api/script/ids` | 补台词 ID（同 `replay ids`） |
 | `GET /api/script/meta` | 自动补全用的名字表：角色和表情、场外玩家、指令和参数、枚举值、曲目、音效 |
+| `GET /api/studio/attention` | 导航栏提醒：等人审核的任务、没处理的审核请求数 |
+| `GET /api/agent?lang=` | AI 面板：默认用哪家、装没装、导出记录、启动命令、开场白、最近完成的任务、审核请求 |
+| `POST /api/agent/export` `{harness, lang, force}` | 导出配置（同 `replay export-agent`） |
+| `POST /api/agent/request` `{index}` | 把一条审核请求标记为已处理 |
+| `GET /api/settings` | 各类后端的当前选择和可选项、每家 AI 的模型设置 |
+| `POST /api/settings` `{table, key, value}` | 改 `replay.toml`：只认 `[backends]` 的各类后端和 `[harness.*]` 的模型；`value` 为空时删掉这一项 |
+| `GET /api/doctor?lang=` | 环境检查（同 `replay doctor`） |
+| `GET /api/video` | 出片页：视频文件、播放器打包了没有、章节、上次成片时长、渲染和压制要的工具 |
+| `POST /api/reveal` `{path}` | 在文件管理器里显示项目里的某个文件 |
 
-审核页原来的接口（`/api/voices`、`/api/lines`、`/api/art`、`/api/music` 和对应的 POST）不变；没打开项目时返回 409。审核页共用的样式和脚本在 `/static/common.css`、`/static/common.js`，地址带 `?embed` 时（嵌在 Studio 里）不显示回首页的链接。
+`/files/` 支持 `Range` 请求，视频能拖进度条。审核页原来的接口（`/api/voices`、`/api/lines`、`/api/art`、`/api/music` 和对应的 POST）不变；没打开项目时返回 409。审核页共用的样式和脚本在 `/static/common.css`、`/static/common.js`，地址带 `?embed` 时（嵌在 Studio 里）不显示回首页的链接。
 
 ## 开发
 

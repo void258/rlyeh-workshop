@@ -10,7 +10,7 @@ function resultText(result: unknown) {
 }
 
 // 跟着一个后台任务：每秒取一次新增的日志，任务结束后停。
-function useJobLog(id: string) {
+export function useJobLog(id: string) {
   const [job, setJob] = useState<JobLog | null>(null)
   const [err, setErr] = useState('')
   useEffect(() => {

@@ -47,7 +47,7 @@
 | `sfx.build` | tool | 音效 |
 | `music.sheet` / `music.gen` / `music.check` / `music.pick` | agent / tool / tool / review | 曲目表（`rlyeh-music`）/ 生成 / 查人声 / 人挑一版 |
 | `player.theme` | agent（可选） | 按团的气质设计主题（`rlyeh-theme`） |
-| `player.build` / `render.video` / `render.encode` | tool | 打包播放器 / 渲染 / 压制分享版 |
+| `player.build` / `render.video` / `render.encode` | tool | 打包播放器 / 渲染（等 BGM 都挑好再渲染，免得返工）/ 压制分享版 |
 
 ## 1. 导入
 

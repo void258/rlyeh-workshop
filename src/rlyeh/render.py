@@ -89,9 +89,12 @@ async def _page(pw, url, video_path, max_sec, s, project, on_line, tag=''):
             if errors:
                 raise RenderError(f'player error: {errors[0]}')
             if n % s['fps'] == 0:
-                if on_line and n % (s['fps'] * 30) == 0:
+                if on_line and n % (s['fps'] * 10) == 0:      # 每 10 秒画面报一次；Studio 按 steps a/b 算进度
                     el = time.time() - t_start
-                    on_line(f'{tag}{n / s["fps"] / 60:5.1f} min rendered in {el / 60:5.1f} min ({n / el:4.1f} fps)')
+                    a, b = await page.evaluate('[(window.__rec.pc || 0) - (window.__rec.from || 0), (window.__rec.to || 0) - (window.__rec.from || 0)]')
+                    if max_sec:
+                        a, b = int(n / s['fps']), int(max_sec)
+                    on_line(f'{tag}{n / s["fps"] / 60:5.1f} min rendered in {el / 60:5.1f} min ({n / el:4.1f} fps) · steps {a}/{b}')
                 if await page.evaluate('window.__rec.done') or (max_sec and n / s['fps'] >= max_sec):
                     break
         events = await page.evaluate('window.__rec.events')

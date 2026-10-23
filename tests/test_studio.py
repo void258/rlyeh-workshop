@@ -174,3 +174,65 @@ def test_review_pages_shared_style(server):
     assert code == 200 and headers['Content-Type'].startswith('text/css') and b'[hidden]' in css
     assert server('/static/common.js', raw=True)[0] == 200
     assert server('/api/studio/player')[0] == 409
+
+
+def test_agent_settings_video(server, example_project):
+    root = example_project.root
+    server('/api/studio/open', {'path': str(root)})
+
+    info = server('/api/agent?lang=zh')[1]
+    assert info['default'] == 'claude-code' and info['exported'] == {} and 'AGENTS.md' in info['prompt']
+    assert set(info['installed']) == {'claude-code', 'codex', 'dsh'}
+    code, res, _ = server('/api/agent/export', {'harness': ['codex'], 'lang': 'zh'})
+    assert code == 200 and (root / '.codex' / 'config.toml').is_file() and any('Codex' in n for n in res['notes'])
+    assert 'codex' in server('/api/agent?lang=zh')[1]['exported']
+    assert server('/api/agent/export', {'harness': ['cursor']})[0] == 400
+
+    (root / 'review').mkdir(exist_ok=True)
+    (root / 'review' / 'requests.json').write_text(json.dumps([{'kind': 'art', 'items': ['bg'], 'note': '看背景', 'at': 'x', 'status': 'open'}]),
+                                                  encoding='utf-8')
+    assert server('/api/studio/attention')[1]['requests'] == 1
+    assert server('/api/agent/request', {'index': 0})[0] == 200
+    assert server('/api/studio/attention')[1]['requests'] == 0
+    assert server('/api/agent/request', {'index': 5})[0] == 400
+
+    # 设置：只改允许改的几项，注释留着
+    before = (root / 'replay.toml').read_text(encoding='utf-8')
+    s = server('/api/settings')[1]
+    image = next(b for b in s['backends'] if b['kind'] == 'image')
+    assert image['current'] == 'placeholder' and {o['id'] for o in image['options']} >= {'codex', 'manual', 'placeholder'}
+    assert server('/api/settings', {'table': 'backends', 'key': 'image', 'value': 'manual'})[0] == 200
+    assert server('/api/settings', {'table': 'harness.codex', 'key': 'model', 'value': 'gpt-6.1-sol'})[0] == 200
+    assert server('/api/settings', {'table': 'harness.codex', 'key': 'effort', 'value': 'low'})[0] == 200
+    after = (root / 'replay.toml').read_text(encoding='utf-8')
+    import tomllib
+    cfg = tomllib.loads(after)
+    assert cfg['backends']['image'] == 'manual' and cfg['harness']['codex'] == {'model': 'gpt-6.1-sol', 'effort': 'low'}
+    assert [line for line in before.split('\n') if line.lstrip().startswith('#')] == \
+           [line for line in after.split('\n') if line.lstrip().startswith('#')]                # 注释一行都没少
+    assert server('/api/settings', {'table': 'harness.codex', 'key': 'model', 'value': ''})[0] == 200
+    assert 'model' not in tomllib.loads((root / 'replay.toml').read_text(encoding='utf-8'))['harness']['codex']
+    assert server('/api/settings', {'table': 'backends', 'key': 'image', 'value': 'nope'})[0] == 400
+    assert server('/api/settings', {'table': 'project', 'key': 'id', 'value': 'x'})[0] == 400
+
+    checks = server('/api/doctor?lang=en')[1]['checks']
+    assert {c['group'] for c in checks} >= {'env', 'backends', 'project'}
+
+    v = server('/api/video')[1]
+    assert v['files'] == [] and not v['player'] and v['chapters'][0]['first'] == 'c1-0001'
+    vdir = root / 'build' / 'video'
+    vdir.mkdir(parents=True)
+    for name in ('fog-harbor.mp4', 'fog-harbor_video.mp4', 'fog-harbor_share.mp4'):
+        (vdir / name).write_bytes(bytes(range(256)) * 4)
+    v = server('/api/video')[1]
+    assert [(f['name'], f['kind']) for f in v['files']] == [('fog-harbor.mp4', 'master'), ('fog-harbor_share.mp4', 'share')]
+    assert server('/api/reveal', {'path': '../outside'})[0] == 400                          # 只认项目里面的
+
+    # /files 支持 Range（视频能拖进度条）
+    code, part, headers = server('/files/build/video/fog-harbor.mp4', headers={'Range': 'bytes=10-19'}, raw=True)
+    assert code == 206 and part == bytes(range(10, 20)) and headers['Content-Range'] == 'bytes 10-19/1024'
+    code, part, _ = server('/files/build/video/fog-harbor.mp4', headers={'Range': 'bytes=-4'}, raw=True)
+    assert code == 206 and part == bytes(range(252, 256))
+    code, whole, headers = server('/files/build/video/fog-harbor.mp4', raw=True)
+    assert code == 200 and len(whole) == 1024 and headers['Accept-Ranges'] == 'bytes'
+    assert server('/files/build/video/fog-harbor.mp4', headers={'Range': 'bytes=5000-'}, raw=True)[0] == 416

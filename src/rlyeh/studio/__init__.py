@@ -10,6 +10,7 @@
   /api/run               在后台运行工具任务或阶段（同 rlyeh_run_stage）
   /api/jobs[/<ID>]       后台任务；带 offset 取日志增量
   /api/script[/file|meta|lint|save|new|ids]   剧本编辑器（见 studio/script.py）
+  /api/agent、/api/settings、/api/doctor、/api/video、/api/reveal   AI 面板、设置、出片（见 studio/panels.py）
 只监听本机。Host 不是本机的请求一律拒绝（防 DNS 重绑定）；会改东西的 Studio 请求要带 X-Rlyeh 头，
 别的网站跨站发不出带自定义头的请求。
 """
@@ -22,7 +23,8 @@ import sys
 import urllib.parse
 from importlib import resources
 
-from .. import __version__, i18n, jobs, preview, tasks
+from .. import __version__, harness, i18n, jobs, preview, tasks
+from . import panels
 from . import script as scripts
 from ..mcp import stage_command
 from ..project import Project, ProjectError, create, find_root
@@ -198,7 +200,7 @@ def make_handler(studio):
                 self._json(dict(ok=True, **fn(*args, **kw)))
             except scripts.Conflict as e:
                 self._json(dict(ok=False, error=str(e), conflict=e.current), 409)
-            except (StudioError, ProjectError, scripts.ScriptError) as e:
+            except (StudioError, ProjectError, scripts.ScriptError, panels.PanelError, harness.ExportError) as e:
                 self._json(dict(ok=False, error=str(e)), 400)
 
         def _lang(self, lang):
@@ -229,6 +231,18 @@ def make_handler(studio):
                 self._need_project() and self._api(lambda: dict(jobs=studio.jobs()))
             elif path.startswith('/api/jobs/'):
                 self._need_project() and self._api(lambda: dict(job=studio.job(path.rsplit('/', 1)[1], q.get('offset', 0))))
+            elif path == '/api/studio/attention':
+                self._need_project() and self._api(lambda: panels.attention(studio.reload()))
+            elif path == '/api/agent':
+                self._need_project() and self._api(lambda: panels.agent(studio.reload(), q.get('lang') or studio.project.lang))
+            elif path == '/api/settings':
+                self._need_project() and self._api(lambda: panels.settings(studio.reload()))
+            elif path == '/api/doctor':
+                if self._need_project():
+                    self._lang(q.get('lang'))
+                    self._api(lambda: panels.check(studio.reload(), q.get('lang')))
+            elif path == '/api/video':
+                self._need_project() and self._api(lambda: panels.video(studio.reload()))
             elif path == '/api/studio/player':
                 self._need_project() and self._api(lambda: dict(built=(studio.project.root / 'build' / 'player' / 'data.js').is_file()))
             elif path == '/api/script':
@@ -245,7 +259,8 @@ def make_handler(studio):
             if not self._local():
                 return
             path = urllib.parse.urlparse(self.path).path
-            if not (path.startswith(('/api/studio/', '/api/script/')) or path in ('/api/tasks/done', '/api/run')):
+            if not (path.startswith(('/api/studio/', '/api/script/', '/api/agent/')) or
+                    path in ('/api/tasks/done', '/api/run', '/api/settings', '/api/reveal')):
                 studio.reload()
                 super().do_POST()
                 return
@@ -269,6 +284,16 @@ def make_handler(studio):
                 self._api(lambda: dict(record=studio.done(body.get('id', ''), body.get('note', ''))))
             elif path == '/api/run':
                 self._api(lambda: dict(job=studio.run(body.get('task'), body.get('stage'), body.get('args'))))
+            elif path == '/api/agent/export':
+                self._lang(body.get('lang'))
+                self._api(lambda: panels.export(studio.reload(), body.get('harness') or None, body.get('lang') or studio.project.lang,
+                                                bool(body.get('force'))))
+            elif path == '/api/agent/request':
+                self._api(lambda: panels.close_request(studio.reload(), body.get('index')))
+            elif path == '/api/settings':
+                self._api(lambda: panels.update(studio.reload(), body.get('table', ''), body.get('key', ''), body.get('value')))
+            elif path == '/api/reveal':
+                self._api(lambda: panels.reveal(studio.reload(), body.get('path', '')))
             elif path == '/api/script/lint':
                 self._lang(body.get('lang'))
                 self._api(lambda: dict(issues=scripts.check(studio.reload(), body.get('path'), body.get('text', ''))))

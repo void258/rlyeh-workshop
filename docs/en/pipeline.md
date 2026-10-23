@@ -47,7 +47,7 @@ The pipeline is a series of **stages**. Each stage lists what it reads, what it 
 | `sfx.build` | tool | Sound effects |
 | `music.sheet` / `music.gen` / `music.check` / `music.pick` | agent / tool / tool / review | Cue sheet (`rlyeh-music`) / generate / vocal check / a person picks takes |
 | `player.theme` | agent (optional) | Design a theme for the campaign (`rlyeh-theme`) |
-| `player.build` / `render.video` / `render.encode` | tool | Build the player / render / encode the share version |
+| `player.build` / `render.video` / `render.encode` | tool | Build the player / render (waits until every music cue is picked, to avoid rendering twice) / encode the share version |
 
 ## 1. Import
 

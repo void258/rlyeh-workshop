@@ -35,7 +35,7 @@ export default function Review({ page }: { page: string | null }) {
   }, [key])
 
   return (
-    <div className="review">
+    <div className="page-review">
       <nav className="tabs">
         {PAGES.map(([k]) => (
           <a key={k} href={`#/review?page=${k}`} className={k === key ? 'on' : ''}>

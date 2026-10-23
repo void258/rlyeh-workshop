@@ -112,6 +112,73 @@ export interface ScriptMeta {
   sounds: { id: string; aliases: string[] }[]
 }
 
+export interface ReviewRequest {
+  index: number
+  kind: string
+  items: string[]
+  note: string
+  at: string
+  status: string
+}
+
+export interface AgentInfo {
+  default: string
+  harnesses: string[]
+  root: string
+  exported: Record<string, { at: string; command: string[] }>
+  installed: Record<string, boolean>
+  prompt: string
+  commands: Record<string, string[]>
+  requests: ReviewRequest[]
+  activity: { id: string; at: string; note: string }[]
+}
+
+export interface ExportResult {
+  harnesses: string[]
+  command: string[]
+  files: { path: string; action: string; reason: string }[]
+  notes: string[]
+}
+
+export interface BackendOption {
+  id: string
+  license: string
+  commercial: boolean | null
+  gpu: boolean
+  vram: number | null
+  languages: string[]
+}
+
+export interface Settings {
+  backends: { kind: string; current: string; options: BackendOption[]; params: Record<string, unknown> }[]
+  harness: {
+    default: string
+    harnesses: string[]
+    codex: Record<string, string>
+    claude: Record<string, string>
+    dsh: Record<string, string>
+  }
+}
+
+export interface Check {
+  group: string
+  name: string
+  status: 'ok' | 'warn' | 'fail'
+  detail: string
+  hint: string
+}
+
+export interface VideoInfo {
+  id: string
+  files: { path: string; name: string; kind: string; bytes: number; mtime: number }[]
+  player: boolean
+  chapters: { number: number; title: string; first: string | null }[]
+  last_seconds: number | null
+  voice_seconds: number
+  tools: { ffmpeg: boolean; playwright: boolean }
+  jobs: Job[]
+}
+
 export class ApiError extends Error {
   status: number
   data: Record<string, unknown>
@@ -154,6 +221,17 @@ export const api = {
   jobs: () => call<{ jobs: Job[] }>('GET', '/api/jobs'),
   job: (id: string, offset: number) => call<{ job: JobLog }>('GET', `/api/jobs/${q(id)}?offset=${offset}`),
   playerBuilt: () => call<{ built: boolean }>('GET', '/api/studio/player'),
+  runStage: (stage: string, args: string[] = []) => call<{ job: Job }>('POST', '/api/run', { stage, args }),
+  attention: () => call<{ reviews: string[]; requests: number }>('GET', '/api/studio/attention'),
+  agent: (lang: string) => call<AgentInfo>('GET', `/api/agent?lang=${q(lang)}`),
+  exportAgent: (harness: string[], lang: string, force = false) =>
+    call<ExportResult>('POST', '/api/agent/export', { harness, lang, force }),
+  closeRequest: (index: number) => call<object>('POST', '/api/agent/request', { index }),
+  settings: () => call<Settings>('GET', '/api/settings'),
+  setSetting: (table: string, key: string, value: string) => call<object>('POST', '/api/settings', { table, key, value }),
+  doctor: (lang: string) => call<{ checks: Check[] }>('GET', `/api/doctor?lang=${q(lang)}`),
+  video: () => call<VideoInfo>('GET', '/api/video'),
+  reveal: (path: string) => call<object>('POST', '/api/reveal', { path }),
   scripts: () => call<{ files: ScriptFile[] }>('GET', '/api/script'),
   script: (path: string) => call<{ file: ScriptDoc }>('GET', `/api/script/file?path=${q(path)}`),
   scriptMeta: () => call<ScriptMeta>('GET', '/api/script/meta'),

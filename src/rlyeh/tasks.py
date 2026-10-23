@@ -216,7 +216,8 @@ class Planner:
         pid = (p.config.get('project') or {}).get('id', 'replay')
         video = root / 'build' / 'video' / f'{pid}.mp4'
         status = 'todo' if not video.exists() else ('stale' if built_at > video.stat().st_mtime else 'done')
-        self._add('render.video', 'tool', status, command=['render'], blocked_by=['player.build'])
+        # 整部渲染很花时间：等人把 BGM 挑完再渲染，免得挑完又要重来
+        self._add('render.video', 'tool', status, command=['render'], blocked_by=['player.build', 'music.pick'])
         share = video.with_name(f'{pid}_share.mp4')
         status = 'todo' if not share.exists() else ('stale' if video.exists() and video.stat().st_mtime > share.stat().st_mtime else 'done')
         self._add('render.encode', 'tool', status, command=['encode', 'share'], blocked_by=['render.video'])

@@ -1,16 +1,19 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react'
 import { api, isActive, type Job, type ProjectInfo, type StudioState } from './api'
+import AgentPage from './Agent'
 import BoardPage from './Board'
 import Home from './Home'
 import { LangContext, saveLang, savedLang, toLang, translator, useI18n, type Lang } from './i18n'
 import JobsPage from './Jobs'
 import Review from './Review'
+import SettingsPage from './SettingsPage'
+import VideoPage from './Video'
 
 // 编辑器（CodeMirror）单独打包，用到剧本页时才加载
 const Script = lazy(() => import('./Script'))
 
-type Route = 'board' | 'script' | 'review' | 'jobs'
-const ROUTES: Route[] = ['board', 'script', 'review', 'jobs']
+type Route = 'board' | 'script' | 'review' | 'agent' | 'video' | 'jobs' | 'settings'
+const ROUTES: Route[] = ['board', 'script', 'review', 'agent', 'video', 'jobs', 'settings']
 
 function readRoute(): { route: Route; id: string | null; page: string | null } {
   const [path, query] = location.hash.replace(/^#\/?/, '').split('?')
@@ -41,10 +44,23 @@ function useJobs() {
   return { jobs, reload: load }
 }
 
+// 导航栏上的提醒：等人审核的任务、AI 请求的审核，10 秒查一次
+function useAttention() {
+  const [att, setAtt] = useState({ reviews: [] as string[], requests: 0 })
+  useEffect(() => {
+    const load = () => api.attention().then(setAtt).catch(() => {})
+    load()
+    const id = window.setInterval(load, 10000)
+    return () => window.clearInterval(id)
+  }, [])
+  return att
+}
+
 function Shell({ project, onClosed }: { project: ProjectInfo; onClosed: () => void }) {
   const { t, lang, setLang } = useI18n()
   const { route, id, page } = useRoute()
   const { jobs, reload } = useJobs()
+  const att = useAttention()
   const [focus, setFocus] = useState<string | null>(null)
   const running = jobs.find(isActive)
 
@@ -84,6 +100,8 @@ function Shell({ project, onClosed }: { project: ProjectInfo; onClosed: () => vo
           <a key={r} href={`#/${r}`} className={route === r ? 'on' : ''}>
             {t(`nav.${r}`)}
             {r === 'jobs' && running && <span className="pulse" title={t('jobs.running')} />}
+            {r === 'review' && att.reviews.length > 0 && <span className="count" title={t('nav.reviewWaiting')}>{att.reviews.length}</span>}
+            {r === 'agent' && att.requests > 0 && <span className="count" title={t('nav.requests')}>{att.requests}</span>}
           </a>
         ))}
       </nav>
@@ -96,6 +114,9 @@ function Shell({ project, onClosed }: { project: ProjectInfo; onClosed: () => vo
         )}
         {route === 'jobs' && <JobsPage jobs={jobs} selected={id ?? focus ?? jobs[0]?.id ?? null} />}
         {route === 'review' && <Review page={page} />}
+        {route === 'agent' && <AgentPage jobs={jobs} />}
+        {route === 'video' && <VideoPage jobs={jobs} onStarted={started} />}
+        {route === 'settings' && <SettingsPage />}
       </main>
     </div>
   )
