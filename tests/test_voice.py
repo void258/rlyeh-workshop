@@ -127,6 +127,12 @@ def test_bleep(proj, monkeypatch):
     freq = np.argmax(np.abs(np.fft.rfft(seg))) * sr / len(seg)
     assert abs(freq - 1000) < 20
     assert voice.bleep(proj) == ({}, [])                               # 已经是最新的，不重做
+    # 消音后再识别：还听得出「傻逼」就报出来，同音字也算
+    use_fake(monkeypatch, 'asr', FakeASR({'c1-0003': '沙比才走正门'}))
+    it = next(i for ch in proj.chapters() for i in ch.spoken if i.id == 'c1-0003')
+    assert voice.recheck(proj, [(it, 'zh-CN')])[0]['id'] == 'c1-0003'
+    use_fake(monkeypatch, 'asr', FakeASR({'c1-0003': '才走正门'}))
+    assert voice.recheck(proj, [(it, 'zh-CN')]) == []
 
 
 def test_drama3_request(proj, tmp_path):

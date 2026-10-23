@@ -6,7 +6,7 @@
 
 Hand R'lyeh Workshop a session log exported from Foundry VTT or a similar platform. Your usual AI agent (Claude Code, Codex, or DeepSeek Harness) polishes the script, designs the characters, and writes the art and music prompts. R'lyeh Workshop handles voice acting, QA, profanity bleeping, sprite post-processing, BGM and sound effects, then produces a visual novel that plays in the browser plus a frame-by-frame rendered video. The steps that need taste — picking voices, approving art, listening line by line — stay with you, in a graphical interface.
 
-> **Status: M1 in progress.** The specification (M0) is final. What works today is log import (`replay import`), script parsing and linting (`replay lint`, `replay ids`), the whole voice line (`replay voice design / pick / build / qa / redo`, `replay bleep`), art (`replay art jobs / run / compose / check`: image generation through Codex, expression compositing), sound effects (`replay sfx`), BGM (`replay music gen / check / pick`: YuE2 with a search for vocal-free scores), the player (`replay build`), frame-by-frame rendering and mixing (`replay render`), encoding (`replay encode`) and the voice-picking, line-review, art-review and music pages (`replay preview`); the sample project and `replay doctor` are in progress. Design discussion is welcome in Issues.
+> **Status: M1 in progress.** The specification (M0) is final. What works today is log import (`replay import`), script parsing and linting (`replay lint`, `replay ids`), the whole voice line (`replay voice design / pick / build / qa / redo`, `replay bleep`), art (`replay art jobs / run / compose / check`: image generation through Codex, expression compositing), sound effects (`replay sfx`), BGM (`replay music gen / check / pick`: YuE2 with a search for vocal-free scores), the player (`replay build`), frame-by-frame rendering and mixing (`replay render`), encoding (`replay encode`), environment checks (`replay doctor`) and the voice-picking, line-review, art-review and music pages (`replay preview`). The command-line layer (M1) is complete: the [sample session](examples/fog-harbor/README.en.md) runs from log to finished video. Next up are the MCP server and playbooks (M2). Design discussion is welcome in Issues.
 
 ## What it does
 
@@ -27,6 +27,10 @@ Hand R'lyeh Workshop a session log exported from Foundry VTT or a similar platfo
 
 All three share the same `replay` CLI and the same MCP server. See [Agent integration](docs/en/agents.md).
 
+## Sample session
+
+[`examples/fog-harbor`](examples/fog-harbor/README.en.md): a made-up one-shot, "Fog Harbor Lighthouse", with the raw log, the script an AI wrote from it, the cast sheet, image prompts and the cue sheet. It uses placeholder backends by default, so it runs from import to video with no models installed.
+
 ## Documentation
 
 - [Overview](docs/en/overview.md): principles, components, roadmap
@@ -40,9 +44,9 @@ All three share the same `replay` CLI and the same MCP server. See [Agent integr
 
 | Milestone | Scope |
 |---|---|
-| **M0** ← current | Specification |
-| M1 | Core pipeline and CLI; a sample session rendered end to end |
-| M2 | MCP server and playbooks for the three harnesses |
+| M0 ✓ | Specification |
+| M1 ✓ | Core pipeline and CLI; a sample session rendered end to end |
+| **M2** ← next | MCP server and playbooks for the three harnesses |
 | M3 | Studio GUI (Chinese and English) |
 | M4 | Release 0.1 (Windows first) |
 

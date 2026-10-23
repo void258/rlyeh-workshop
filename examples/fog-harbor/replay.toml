@@ -1,0 +1,59 @@
+spec = "0.1"
+
+[project]
+id = "fog-harbor"
+title = "雾港灯塔"
+language = "zh-CN"
+session_dates = ["2024-05-18"]
+
+# 场外玩家 → 他们扮演的角色。这个示例团的玩家和记录都是编的
+[players]
+"小林" = "arlo"
+"阿杰" = "tiechui"
+"柚子" = "vera"
+"GM" = { role = "gm" }
+
+[import]
+gm = ["GM"]
+
+[harness]
+default = "claude-code"
+
+# 用 Codex 生图时，模型和推理强度一定要写
+# [harness.codex]
+# model = "gpt-6.1-sol"
+# effort = "low"
+
+# 示例团默认全用占位后端：不装任何模型也能从导入一路跑到成片。
+# 换成真的后端：image = "codex"、voice_design = "qwen3-tts"、tts = "drama3"、asr = "sensevoice"、
+# align = "funasr-fa"、music = "yue2-comfyui"，各自的设置见 docs/zh/project-format.md。replay doctor 会告诉你还缺什么。
+[backends]
+import = "text"
+image = "placeholder"
+voice_design = "placeholder"
+tts = "placeholder"
+asr = "none"
+align = "estimate"
+music = "placeholder"
+
+[art]
+style = "日系动画风格，干净利落的赛璐璐上色，线条清晰，低饱和偏冷的配色"
+always_append = "不要假细节假纹理"
+
+[readings]
+
+[spoken]
+"tmd" = "他妈的"
+
+[render]
+width = 1920
+height = 1080
+fps = 60
+
+[player]
+title_bg = "雾港码头"
+title_variants = ["夜", "雾"]
+
+[credits]
+staff = [["剧本整理 · 演出", "你的 AI"]]
+end = "完"

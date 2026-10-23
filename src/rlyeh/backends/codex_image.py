@@ -79,6 +79,16 @@ class CodexImage:
         self.sandbox = cfg.get('sandbox', 'workspace-write')
         self.home = pathlib.Path(cfg.get('home') or os.environ.get('CODEX_HOME') or pathlib.Path.home() / '.codex')
 
+    def check(self):
+        try:
+            proc = subprocess.run([*self.bin, '--version'], capture_output=True, text=True, encoding='utf-8', errors='replace', timeout=60)
+            version = (proc.stdout or proc.stderr).strip().splitlines()[0] if proc.returncode == 0 else None
+        except (OSError, subprocess.TimeoutExpired, IndexError):
+            version = None
+        if not version:
+            return [dict(status='fail', detail=f'{self.bin[0]} --version failed', hint=('doctor.hint_codex', {}))]
+        return [dict(status='ok', detail=f'{version}; model {self.model}, effort {self.effort}', hint=None)]
+
     def instruction(self, req, target):
         tx = INSTRUCTION['en' if self.project.lang.startswith('en') else 'zh-CN']
         parts = [tx['head'].format(gen=(self.home / 'generated_images').as_posix(), target=pathlib.Path(target).as_posix())]

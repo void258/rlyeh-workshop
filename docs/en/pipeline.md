@@ -83,7 +83,7 @@ The pipeline is a series of **stages**. Each stage lists what it reads, what it 
 
 ## 6. Bleeping
 
-- **Tools**: forced alignment (Chinese: FunASR fa-zh) gives each character's start and end; `{}` spans are replaced with a 1 kHz beep in `audio/voice-bleep/`.
+- **Tools**: forced alignment (Chinese: FunASR fa-zh) gives each character's start and end; `{}` spans are replaced with a 1 kHz beep in `audio/voice-bleep/`. English aligns by word; without an aligner, `align = "estimate"` estimates timing from length and covers a little extra.
 - **Defaults**:
   - Pad 40 ms on each side.
   - When the word starts or ends the line, cover all the way to the start or end of the clip: aligners often place the start after an aspirated consonant, leaking half a syllable.

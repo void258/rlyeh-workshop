@@ -32,8 +32,15 @@ def _seconds(text):
     return round(min(20, .6 + .2 * chars), 3)
 
 
+def _placeholder(what):
+    return [dict(status='warn', detail='', hint=('doctor.hint_placeholder', dict(what=what)))]
+
+
 class PlaceholderTTS:
     info = BackendInfo(id='placeholder', kind='tts', license='Apache-2.0')
+
+    def check(self):
+        return _placeholder('voice')
 
     def __init__(self, cfg, project):
         self.cfg = cfg
@@ -64,6 +71,9 @@ class PlaceholderTTS:
 
 class NoASR:
     info = BackendInfo(id='none', kind='asr', license='Apache-2.0')
+
+    def check(self):
+        return [dict(status='warn', detail='', hint=('doctor.hint_no_asr', {}))]
 
     def __init__(self, cfg, project):
         pass
@@ -103,6 +113,9 @@ class PlaceholderImage:
     info = BackendInfo(id='placeholder', kind='image', license='Apache-2.0')
     edits = True
     writes = True
+
+    def check(self):
+        return _placeholder('image')
 
     def __init__(self, cfg, project):
         self.cfg = cfg
@@ -144,6 +157,9 @@ class PlaceholderMusic:
     info = BackendInfo(id='placeholder', kind='music', license='Apache-2.0')
     generates = True
     can_plan = False
+
+    def check(self):
+        return _placeholder('music')
 
     def __init__(self, cfg, project):
         self.max_seconds = float(cfg.get('max_seconds', 20))

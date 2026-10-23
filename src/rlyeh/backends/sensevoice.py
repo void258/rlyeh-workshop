@@ -15,6 +15,15 @@ class SenseVoice:
     def __init__(self, cfg, project):
         self.cfg = cfg
 
+    def check(self):
+        out = [worker.import_check(self.cfg.get('python', 'python'), ['torch', 'funasr'], 'funasr torch')]
+        model = self.cfg.get('model')
+        if model and ('/' in model or '\\' in model) and not model.startswith('iic/'):
+            out.append(worker.path_check('model', model, 'sensevoice'))
+        elif not model:
+            out.append(dict(status='warn', detail='model = iic/SenseVoiceSmall', hint=('doctor.hint_download', {})))
+        return out
+
     def transcribe(self, files, language='zh-CN', on_line=None):
         """返回 {文件路径: 识别文字}。language: zh-CN | en | auto。"""
         lang = {'zh': 'zh', 'en': 'en'}.get(language[:2], 'auto')        # auto：查 BGM 里有没有人声时用

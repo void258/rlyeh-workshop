@@ -20,7 +20,7 @@ import tempfile
 
 import soundfile as sf
 
-from . import BackendError, BackendInfo
+from . import BackendError, BackendInfo, worker
 
 GEN = {'max_tokens': '1400', 'temperature': '0.7', 'top_p': '0.7'}
 SESSION = {'cpu_expert_layers': '0', 'context_length': '4096', 'disk_experts': 'true', 'expert_cache_size': '64'}
@@ -42,6 +42,11 @@ class Drama3:
         self.chunk = int(cfg.get('chunk', 80))
         self.gen = {**GEN, **{k: str(v) for k, v in (cfg.get('gen') or {}).items()}}
         self.session = {**SESSION, **{k: str(v) for k, v in (cfg.get('session') or {}).items()}}
+
+    def check(self):
+        out = [worker.path_check(k, self.cfg.get(k), 'drama3') for k in ('cli', 'model')]
+        out += [worker.path_check('dll_dirs', d, 'drama3') for d in self.cfg.get('dll_dirs') or []]
+        return out
 
     def _ascii_ref(self, path):
         """参考音频复制一份到英文目录，文件名用内容哈希。"""

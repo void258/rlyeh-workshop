@@ -180,7 +180,7 @@ model = "D:/models/SenseVoiceSmall"
 python = "C:/python311/python.exe"
 ```
 
-`tts = "placeholder"`、`voice_design = "placeholder"`、`asr = "none"` 是占位后端：不装任何模型也能把流程跑通，配音会是一段长度合适的音调。
+`tts = "placeholder"`、`voice_design = "placeholder"`、`asr = "none"` 是占位后端：不装任何模型也能把流程跑通，配音会是一段长度合适的音调。`align = "estimate"` 不用模型，按字数估算消音位置。用 `replay doctor` 检查每个后端能不能用。
 
 声线相关的文件：
 

@@ -41,6 +41,8 @@ class BackendInfo:
 
 第三方可以写插件注册新后端，不用改核心代码。
 
+后端可以提供 `check()`，返回自己的就绪情况（路径对不对、依赖装没装、服务开没开）；`replay doctor` 逐个调用，把不能用的项和修法列出来。
+
 ## 第一批后端
 
 授权一栏是 M0 时的了解，**M1 接入每个后端时会对照官方授权逐条核实**，以核实结果为准。
@@ -56,7 +58,9 @@ class BackendInfo:
 | tts | Fish Audio Drama 3（audio.cpp 本地版） | 实战使用，支持方括号语气指示 | Fish Audio 社区授权：要求署名「Built with Fish Audio」；只能克隆本人同意的声音（合成设计出来的声线可以） |
 | asr | SenseVoice | 实战用于配音质检 | 待核实 |
 | align | FunASR fa-zh | 实战用于中文消音 | 待核实 |
-| asr / align（英文） | Whisper + WhisperX | 英文项目用 | Whisper 为 MIT；WhisperX 待核实 |
+| asr（英文） | SenseVoice | 也认英文，英文项目默认用它 | 同上 |
+| align | 估算（estimate） | 不用模型，按字数把有声段分给每个字（中文）或词（英文）；英文项目、示例团默认用它 | 本项目代码 |
+| asr / align（英文） | Whisper + WhisperX | 计划中：更准的英文对齐 | Whisper 为 MIT；WhisperX 待核实 |
 | music | YuE2（通过 ComfyUI） | 实战使用；支持先出乐谱再渲染 | 模型权重 CC BY-NC 4.0：**只能非商用**，需要署名 |
 | music | 手动导入 | 自己的曲子 | — |
 | music | 占位 | 一段和弦铺底，用来跑通流程 | 本项目代码 |

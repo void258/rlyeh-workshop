@@ -1,0 +1,24 @@
+# 曲目表：AI 按每一幕的情绪写的。剧本里 【BGM：港口】 这样切曲子。
+battle: battle
+
+cues:
+  title:
+    name: { zh-CN: 标题, en: Title }
+    style: Instrumental, no vocals, quiet seaside fantasy overture, solo piano and soft strings, distant foghorn pads, gentle waves, slow 70 BPM, melancholic but warm
+    seconds: 120
+  harbor:
+    name: { zh-CN: 港口, en: Harbor }
+    style: Instrumental, no vocals, foggy night harbor, celesta and harp ostinato, low cello drone, mysterious and lonely, anime fantasy soundtrack, 76 BPM
+    seconds: 150
+  tension:
+    name: { zh-CN: 紧张, en: Tension }
+    style: Instrumental, no vocals, creeping suspense, sparse detuned piano, tremolo strings, heartbeat-like low drum, eerie wind, anime horror soundtrack, 66 BPM
+    seconds: 150
+  battle:
+    name: { zh-CN: 战斗, en: Battle }
+    style: Instrumental, no vocals, fast fantasy battle, driving taiko and snare, staccato strings, bold brass, heroic and urgent, anime RPG battle theme, 152 BPM
+    seconds: 150
+  dawn:
+    name: { zh-CN: 黎明, en: Dawn }
+    style: Instrumental, no vocals, sunrise over a calm sea, wooden flute, acoustic guitar, soft strings swelling, hopeful and relieved, 86 BPM
+    seconds: 150

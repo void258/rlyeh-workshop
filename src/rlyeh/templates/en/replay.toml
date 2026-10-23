@@ -22,8 +22,8 @@ default = "claude-code"           # claude-code | codex | dsh
 import = "fvtt"
 image = "manual"                  # manual (bring your own) | codex | placeholder
 tts = "drama3"
-asr = "whisper"
-align = "whisperx"
+asr = "sensevoice"                # SenseVoice also recognizes English
+align = "estimate"                # rough word timing without a model, for bleeping
 music = "manual"                  # manual (bring your own) | yue2-comfyui | placeholder
 
 [art]

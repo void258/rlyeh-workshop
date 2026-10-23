@@ -2,6 +2,10 @@
 from . import BackendInfo
 
 
+def _manual():
+    return [dict(status='ok', detail='', hint=('doctor.hint_manual', {}))]
+
+
 class ManualImage:
     info = BackendInfo(id='manual', kind='image')
     edits = False                # 不会改图：差分要么直接放成品，要么把原图放进 art/_raw 再 replay art compose
@@ -9,6 +13,9 @@ class ManualImage:
 
     def __init__(self, cfg, project):
         pass
+
+    def check(self):
+        return _manual()
 
 
 class ManualMusic:
@@ -18,3 +25,6 @@ class ManualMusic:
 
     def __init__(self, cfg, project):
         pass
+
+    def check(self):
+        return _manual()

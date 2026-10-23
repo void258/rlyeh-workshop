@@ -6,7 +6,7 @@ import re
 import sys
 from importlib import resources
 
-from . import SPEC_VERSION, __version__, art, encode, i18n, importers, music, player, render, sfx, voice
+from . import SPEC_VERSION, __version__, art, doctor, encode, i18n, importers, music, player, render, sfx, voice
 from .backends import BackendError
 from .backends.worker import WorkerError
 from .i18n import t
@@ -277,6 +277,26 @@ def cmd_encode(args):
     return 0
 
 
+def cmd_doctor(args):
+    root = find_root(args.project)
+    proj = Project(root) if root else None
+    if proj and not args.lang:
+        i18n.set_lang(i18n.detect(proj.lang))
+    rows = doctor.run(proj)
+    mark = {'ok': '✓', 'warn': '!', 'fail': '✗'}
+    lines, group = [], None
+    for r in rows:
+        if r['group'] != group:
+            group = r['group']
+            lines.append(t('doctor.group.' + group))
+        lines.append(f"  {mark[r['status']]} {r['name']}" + (f": {r['detail']}" if r['detail'] else '')
+                     + (f"\n      → {r['hint']}" if r['hint'] else ''))
+    fail, warn = (sum(1 for r in rows if r['status'] == s) for s in ('fail', 'warn'))
+    lines.append(t('cli.doctor_summary', fail=fail, warn=warn))
+    _out(args, dict(ok=fail == 0, checks=rows), '\n'.join(lines))
+    return 1 if fail else 0
+
+
 def cmd_preview(args):
     proj = _project(args)
     from .preview import serve
@@ -392,6 +412,8 @@ def build_parser():
     for q in ms.choices.values():
         q.set_defaults(func=cmd_music)
 
+    p = sub.add_parser('doctor', parents=[common], help='check the environment and backends / 检查环境和后端')
+    p.set_defaults(func=cmd_doctor)
     p = sub.add_parser('build', parents=[common], help='build the player / 打包播放器')
     p.set_defaults(func=cmd_build)
     p = sub.add_parser('render', parents=[common], help='render the video frame by frame / 逐帧渲染成视频')

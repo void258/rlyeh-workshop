@@ -1,0 +1,14 @@
+# 示例团跑出来的东西都不进版本库：这里只放「原料」（记录、剧本、角色表、提示词、曲目表）
+build/
+.rlyeh/
+logs/events.jsonl
+logs/sessions.json
+voices/
+audio/
+review/
+art/_raw/
+art/_overview/
+art/sprites/
+art/backgrounds/
+art/cg/
+art/items/

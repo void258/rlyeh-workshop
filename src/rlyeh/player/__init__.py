@@ -31,9 +31,10 @@ HIT_SOUNDS = [['hit_slash', '匕首|剑|刀|斧|爪|sword|dagger|blade|axe|claw'
               ['burn', '火|焰|fire|flame|burn'], ['hit_blunt', '棒|杖|棍|投石|拳|club|staff|sling|mace|fist|punch']]
 CREDITS = {
     'zh-CN': dict(gm='主持', players='玩家', cast='登场人物', art='美术', voice_design='声线设计', voice='配音', music='音乐',
-                  sfx='音效', source='原始记录', synth='程序合成', end='完', chapter='第 {n} 章'),
+                  sfx='音效', source='原始记录', synth='程序合成', end='完', chapter='第 {n} 章', chat='聊天记录'),
     'en': dict(gm='Game Master', players='Players', cast='Characters', art='Art', voice_design='Voice design', voice='Voices',
-               music='Music', sfx='Sound effects', source='Session logs', synth='Synthesized', end='Fin', chapter='Chapter {n}'),
+               music='Music', sfx='Sound effects', source='Session logs', synth='Synthesized', end='Fin', chapter='Chapter {n}',
+               chat='Chat log'),
 }
 
 
@@ -267,7 +268,7 @@ def credits(project, data):
     p = project.config.get('project') or {}
     imp = (project.config.get('backends') or {}).get('import')
     if (project.root / 'logs' / 'events.jsonl').exists() or p.get('session_dates'):
-        source = {'fvtt': 'Foundry VTT'}.get(imp, imp or '')
+        source = {'fvtt': 'Foundry VTT'}.get(imp) or tx['chat']
         sections.append(dict(h=tx['source'], items=[[source, ' / '.join(p.get('session_dates') or [])]]))
     bg = cfg.get('background')
     if not bg:

@@ -22,6 +22,10 @@ class Qwen3TTS:
         if not cfg.get('python'):
             raise BackendError('[backends.qwen3-tts] python is not set')
 
+    def check(self):
+        out = [worker.import_check(self.cfg['python'], ['torch', 'qwen_tts', 'soundfile'], 'qwen-tts soundfile')]
+        return out + [worker.path_check(k, self.cfg.get(k), 'qwen3-tts') for k in ('design_model', 'base_model') if self.cfg.get(k)]
+
     def _job(self, mode, jobs, out_dir, **extra):
         model = self.cfg.get('design_model' if mode == 'design' else 'base_model')
         if not model:

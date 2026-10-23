@@ -279,13 +279,20 @@ TONE = 1000
 PAD = .04
 
 
-def bleep_spans(project, item):
-    """消音词在 TTS 读法里占哪几个汉字：[(起, 止)]，按汉字下标。"""
-    chars = [c for c in project.tts_text(item) if '一' <= c <= '鿿']
+def units(text, lang):
+    """消音对齐的单位：中文按汉字，英文按单词。"""
+    if lang.startswith('en'):
+        return [w.lower() for w in re.findall(r"[A-Za-z0-9']+", text)]
+    return [c for c in text if '一' <= c <= '鿿']
+
+
+def bleep_spans(project, item, lang='zh-CN'):
+    """消音词在 TTS 读法里占哪几个单位（汉字或英文词）：[(起, 止)]，按单位下标。"""
+    chars = units(project.tts_text(item), lang)
     spoken = project.spoken_forms
     spans = []
     for word in dict.fromkeys(item.bleeps):
-        w = [c for c in spoken.get(word, word) if '一' <= c <= '鿿']
+        w = units(spoken.get(word, word), lang)
         for i in range(len(chars) - len(w) + 1):
             if w and chars[i:i + len(w)] == w:
                 spans.append((i, i + len(w)))
@@ -322,15 +329,17 @@ def apply_bleeps(src, dst, timestamps, spans, n_chars):
 def bleep(project, on_line=None):
     """给带消音词的句子做消音版。返回 {id: [[起秒, 止秒], …]}；对不上的句子记在 problems。"""
     state = State(project.root)
-    todo, problems = [], []
+    todo, problems, aligner = [], [], None
     for _, it, _, lang in lines(project):
         src = project.root / VOICE_DIR / f'{it.id}.wav'
         if not it.bleeps or not src.exists():
             continue
-        if lang.startswith('en'):
-            problems.append(dict(id=it.id, reason='english bleeping needs a word aligner (planned)'))
+        aligner = aligner or backends.get(project, 'align')
+        langs = getattr(getattr(aligner, 'info', None), 'languages', None)
+        if langs and lang not in langs:
+            problems.append(dict(id=it.id, reason=f'align backend does not support {lang} (try align = "estimate")'))
             continue
-        chars, spans = bleep_spans(project, it)
+        chars, spans = bleep_spans(project, it, lang)
         if not spans:
             problems.append(dict(id=it.id, reason='bleeped word not found in the spoken text'))
             continue
@@ -338,18 +347,42 @@ def bleep(project, on_line=None):
         inputs = digest(src, spans)
         if state.fresh(key, inputs, project.root / key):
             continue
-        todo.append((it, src, chars, spans, inputs))
+        todo.append((it, src, chars, spans, inputs, lang))
     done = {}
     if todo:
-        stamps = backends.get(project, 'align').align([dict(audio=src, chars=chars) for _, src, chars, _, _ in todo], on_line)
-        for (it, src, chars, spans, inputs), ts in zip(todo, stamps):
+        stamps = aligner.align([dict(audio=src, chars=chars) for _, src, chars, _, _, _ in todo], on_line)
+        for (it, src, chars, spans, inputs, _), ts in zip(todo, stamps):
             if ts is None:
                 problems.append(dict(id=it.id, reason='alignment failed'))
                 continue
             done[it.id] = apply_bleeps(src, project.root / BLEEP_DIR / f'{it.id}.wav', ts, spans, len(chars))
             state.set(f'{BLEEP_DIR}/{it.id}.wav', inputs=inputs, cuts=done[it.id])
         state.save()
+        problems += recheck(project, [(it, lang) for it, *_, lang in todo if it.id in done], on_line)
     return done, problems
+
+
+def recheck(project, items, on_line=None):
+    """消音后再识别一遍：识别结果里还听得出消音词，就报出来。识别后端是 none 时跳过。"""
+    asr = backends.get(project, 'asr')
+    if getattr(getattr(asr, 'info', None), 'id', '') == 'none' or not items:
+        return []
+    key = lambda text, lang: units(text, lang) if lang.startswith('en') else pinyin(text)   # noqa: E731  中文按拼音比，同音字也算
+    out = []
+    for lang in sorted({lang for _, lang in items}):
+        group = [it for it, l in items if l == lang]
+        files = [str(project.root / BLEEP_DIR / f'{it.id}.wav') for it in group]
+        texts = asr.transcribe(files, lang, on_line)
+        if texts is None:
+            return out
+        for it, f in zip(group, files):
+            heard = key(texts.get(f, ''), lang)
+            for word in dict.fromkeys(it.bleeps):
+                w = key(project.spoken_forms.get(word, word), lang)
+                if w and any(heard[i:i + len(w)] == w for i in range(len(heard) - len(w) + 1)):
+                    out.append(dict(id=it.id, reason=f'still audible after bleeping: {texts.get(f)}'))
+                    break
+    return out
 
 
 # ───────── 汇总 ─────────

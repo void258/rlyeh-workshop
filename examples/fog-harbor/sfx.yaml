@@ -1,0 +1,10 @@
+# 项目自己的音效。内置的合成音效（破门、锣、幽灵……）不用写，replay sfx --list 能看到。
+sounds:
+  wail:
+    name: 雾魇的哀嚎
+    voice: wraith                 # 用雾魇的声线生成
+    tone: 凄厉地哀嚎，像风穿过破窗
+    text: 啊——呜——
+    max_seconds: 2.5
+    pitch: -2
+    space: room

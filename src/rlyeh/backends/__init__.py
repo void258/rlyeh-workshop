@@ -29,13 +29,13 @@ class BackendInfo:
 
 
 def _registry():
-    from . import codex_image, drama3, funasr_fa, manual, placeholder, qwen3_tts, sensevoice, yue2_comfyui
+    from . import codex_image, drama3, estimate, funasr_fa, manual, placeholder, qwen3_tts, sensevoice, yue2_comfyui
     return {
         'tts': {'drama3': drama3.Drama3, 'placeholder': placeholder.PlaceholderTTS},
         'voice_design': {'qwen3-tts': qwen3_tts.Qwen3TTS, 'placeholder': placeholder.PlaceholderTTS},
         'voice_clone': {'qwen3-tts': qwen3_tts.Qwen3TTS, 'placeholder': placeholder.PlaceholderTTS},
         'asr': {'sensevoice': sensevoice.SenseVoice, 'none': placeholder.NoASR},
-        'align': {'funasr-fa': funasr_fa.FunASRAlign},
+        'align': {'funasr-fa': funasr_fa.FunASRAlign, 'estimate': estimate.EstimateAlign},
         'image': {'codex': codex_image.CodexImage, 'manual': manual.ManualImage, 'placeholder': placeholder.PlaceholderImage},
         'music': {'yue2-comfyui': yue2_comfyui.YuE2Comfy, 'manual': manual.ManualMusic, 'placeholder': placeholder.PlaceholderMusic},
     }

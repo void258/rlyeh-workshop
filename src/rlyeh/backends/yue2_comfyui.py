@@ -40,6 +40,15 @@ class YuE2Comfy:
         self.tile_frames = int(cfg.get('vae_tile_frames', 384))
         self.prefix = (project.config.get('project') or {}).get('id', 'replay')
 
+    def check(self):
+        try:
+            info = self._api('/object_info/YuE2Sampler')
+        except BackendError:
+            return [dict(status='warn', detail=f'ComfyUI not reachable at {self.url}', hint=('doctor.hint_comfy', {}))]
+        if 'YuE2Sampler' not in info:
+            return [dict(status='fail', detail='ComfyUI is running but has no YuE2Sampler node', hint=('doctor.hint_yue2', {}))]
+        return [dict(status='ok', detail=f'{self.url} has ComfyUI-YuE2', hint=None)]
+
     def _api(self, path, data=None):
         req = urllib.request.Request(self.url + path, data=json.dumps(data).encode() if data is not None else None,
                                      headers={'Content-Type': 'application/json'})

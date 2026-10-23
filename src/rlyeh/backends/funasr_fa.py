@@ -14,6 +14,9 @@ class FunASRAlign:
     def __init__(self, cfg, project):
         self.cfg = cfg
 
+    def check(self):
+        return [worker.import_check(self.cfg.get('python', 'python'), ['torch', 'funasr'], 'funasr torch')]
+
     def align(self, items, on_line=None):
         """items: [dict(audio, chars)]，chars 是汉字列表。返回每项的 [[起毫秒, 止毫秒], …]，对不上时为 None。"""
         job = dict(model=self.cfg.get('model', 'fa-zh'), device=self.cfg.get('device', 'cuda:0'),

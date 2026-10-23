@@ -41,6 +41,8 @@ class BackendInfo:
 
 Third parties can register new backends as plugins without touching the core.
 
+A backend may provide `check()` to report its own readiness (paths, installed dependencies, running services); `replay doctor` calls each one and lists what doesn't work and how to fix it.
+
 ## First-wave backends
 
 The license column reflects what was known at M0. **Each license will be checked against its official terms when the backend is integrated in M1**, and that check takes precedence.
@@ -56,7 +58,9 @@ The license column reflects what was known at M0. **Each license will be checked
 | tts | Fish Audio Drama 3 (local audio.cpp build) | Used in production; supports bracketed tone directions | Fish Audio community license: requires "Built with Fish Audio" attribution; only consented voices may be cloned (designed synthetic voices are fine) |
 | asr | SenseVoice | Used in production for voice QA | To be verified |
 | align | FunASR fa-zh | Used in production for Chinese bleeping | To be verified |
-| asr / align (English) | Whisper + WhisperX | For English projects | Whisper is MIT; WhisperX to be verified |
+| asr (English) | SenseVoice | Recognizes English too; the default for English projects | Same as above |
+| align | Estimate | No model: spreads the voiced part over characters (Chinese) or words (English) by length; the default for English projects and the sample | This project's code |
+| asr / align (English) | Whisper + WhisperX | Planned: more accurate English alignment | Whisper is MIT; WhisperX to be verified |
 | music | YuE2 (through ComfyUI) | Used in production; can produce a score before rendering | Weights are CC BY-NC 4.0: **non-commercial only**, attribution required |
 | music | Manual import | Your own music | — |
 | music | Placeholder | A soft chord pad, to run the pipeline end to end | This project's code |

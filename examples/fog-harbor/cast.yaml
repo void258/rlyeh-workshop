@@ -1,0 +1,96 @@
+# 角色表。外貌、表情、声线描述都是 AI 按跑团记录写的，人可以改。
+characters:
+  narrator:
+    name: { zh-CN: 旁白, en: Narrator }
+    kind: narrator
+    voice: { gender: male, design: 成熟沉稳的中年男声，语速偏慢，带一点讲故事的悬念感 }
+
+  gm:
+    name: { zh-CN: GM, en: GM }
+    kind: gm
+    voice: { gender: male, design: 轻松随和的三十岁男声，像在桌边和朋友聊天 }
+
+  arlo:
+    name: { zh-CN: 阿洛, en: Arlo }
+    kind: pc
+    player: 小林
+    color: "#c9a23a"
+    appearance: 二十岁左右的见习冒险者，棕色短发有点乱，旧皮甲外面套着防水斗篷，腰间挂着一盏黄铜提灯，身材清瘦
+    expressions:
+      平静: 神情平静，嘴角放松
+      警惕: 眉头微皱，眼神警觉，抿着嘴
+      惊讶: 眼睛睁大，嘴巴微张
+      吃痛: 皱着脸咬紧牙关，额头冒汗
+    default_expression: 平静
+    face_rules:
+      - [吃痛, "痛|冷"]
+      - [惊讶, "惊|吓"]
+      - [警惕, "压低声音|警惕|小心"]
+    sprite: { scale: 1.0, head: [0.5, 0.17] }
+    voice: { gender: male, design: 二十岁左右的青年男声，干净有朝气，紧张时语速变快 }
+
+  tiechui:
+    name: { zh-CN: 铁锤, en: Ironhammer }
+    kind: pc
+    player: 阿杰
+    color: "#b5532f"
+    appearance: 矮壮的矮人铁匠，红色大胡子编成两条粗辫子，皮围裙上全是火星烫的小洞，背着一把比他还宽的大锤
+    expressions:
+      豪爽: 咧嘴笑，胸膛挺起
+      暴躁: 眉毛倒竖，瞪着眼大吼
+      狂笑: 仰头张大嘴哈哈大笑
+    default_expression: 豪爽
+    face_rules:
+      - [狂笑, "大笑|狂笑"]
+      - [暴躁, "骂|吼|怒"]
+    sprite: { scale: 0.82, head: [0.5, 0.17] }
+    voice: { gender: male, design: 粗犷洪亮的中年矮人男声，嗓门大，说话直来直去 }
+
+  vera:
+    name: { zh-CN: 维拉, en: Vera }
+    kind: pc
+    player: 柚子
+    color: "#5f9e8f"
+    appearance: 精灵学者兼弓手，银色长发束在脑后，右眼戴一枚单片眼镜，深绿色旅行斗篷，背着短弓和一卷地图
+    expressions:
+      冷静: 神情冷静，目光平视
+      无奈: 眼睛半闭，嘴角下撇，像在叹气
+      认真: 眉头微锁，眼神专注
+      微笑: 浅浅地笑着
+    default_expression: 冷静
+    face_rules:
+      - [无奈, "无奈|叹气|吐槽"]
+      - [认真, "认真|郑重"]
+      - [微笑, "笑"]
+    sprite: { scale: 0.95, head: [0.5, 0.17] }
+    voice: { gender: female, design: 清冷的年轻女声，咬字清楚，偶尔带一点揶揄 }
+
+  tom:
+    name: { zh-CN: 老汤姆, en: Old Tom }
+    kind: npc
+    color: "#8a7a5c"
+    appearance: 六十多岁的灯塔看守，满脸白胡子，皮肤被海风吹得黝黑，穿一件旧油布雨衣，手里提着熄灭的油灯
+    expressions:
+      慈祥: 眯着眼慈祥地笑
+      恍惚: 眼神灰蒙蒙地失去焦点，嘴唇微张
+      虚弱: 脸色苍白，眼皮沉重
+    default_expression: 慈祥
+    face_rules:
+      - [恍惚, "恍惚|飘忽"]
+      - [虚弱, "虚弱"]
+    sprite: { scale: 0.9, head: [0.5, 0.17] }
+    voice: { gender: male, design: 沙哑苍老的老人声音，说话慢，带着海边口音 }
+
+  wraith:
+    name: { zh-CN: 雾魇, en: Mist Wraith }
+    kind: npc
+    color: "#9fb8c8"
+    appearance: 由灰白色浓雾凝成的人形怪物，没有眼睛，只有两个发着冷光的空洞，下半身散成雾气拖在地上
+    expressions:
+      低语: 空洞的眼窝微微发光，嘴部的雾缓缓开合
+      尖啸: 整张脸的雾向外撕开，像在尖叫
+    default_expression: 低语
+    face_rules:
+      - [尖啸, "尖啸|哀嚎|嘶吼"]
+    sprite: { scale: 1.05, head: [0.5, 0.17] }
+    voice: { gender: neutral, design: 空灵嘶哑的低语声，像风穿过破窗，分不出男女 }

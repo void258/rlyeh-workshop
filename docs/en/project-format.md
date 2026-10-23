@@ -180,7 +180,7 @@ model = "D:/models/SenseVoiceSmall"
 python = "C:/python311/python.exe"
 ```
 
-`tts = "placeholder"`, `voice_design = "placeholder"` and `asr = "none"` are placeholder backends: the pipeline runs end to end with no models installed, with a tone of suitable length standing in for each voice line.
+`tts = "placeholder"`, `voice_design = "placeholder"` and `asr = "none"` are placeholder backends: the pipeline runs end to end with no models installed, with a tone of suitable length standing in for each voice line. `align = "estimate"` needs no model and estimates where to bleep from length. `replay doctor` checks whether each backend works.
 
 Voice files:
 
