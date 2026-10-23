@@ -25,9 +25,9 @@ Integration has three layers, shared by all three:
 | `replay lint` / `replay ids` | Lint scripts / assign line IDs |
 | `replay voice design\|build\|qa\|redo <ID…>` | Voice candidates / synthesis / QA / reseeded redo |
 | `replay bleep` | Bleep profanity |
-| `replay art jobs\|run\|compose\|overview` | Image jobs / generate / composite expressions / overview sheets |
-| `replay music gen\|check` | Generate BGM / detect vocals |
-| `replay sfx` | Build the SFX library |
+| `replay art jobs\|run\|compose\|check` | Write starter prompts / generate (`--marked` redraws rejected images) / recomposite expressions / check and overview sheets |
+| `replay music gen\|check\|pick` | Generate BGM / detect vocals / choose a take |
+| `replay sfx [--list]` | Build sound effects (built-in + sfx.yaml) / list sounds and aliases |
 | `replay build` | Package player data |
 | `replay preview` | Start the local preview (player, review pages) |
 | `replay render [--chapter N] [--from ID --seconds S] [--remix]` | Frame-by-frame render / remix audio only |
@@ -162,6 +162,8 @@ When the image backend is `codex`, R'lyeh Workshop drives Codex's image generati
 2. Model and effort come from `[harness.codex]`; never left empty.
 3. Fixed instruction: call image generation once with the prompt as given; don't read extra guides, search the web, look for references or run extra checks; copy the image to the given path and reply with the path only.
 4. When consistency matters (expression variants, CGs), Codex first opens the project's reference images, explicitly told that these are the project's own assets, not references to search for.
+
+The actual call: `codex exec -m <model> -c model_reasoning_effort="<effort>" --skip-git-repo-check --ephemeral -s workspace-write -C <project> -o <last reply> --image=<base or reference> -`, with the fixed instruction and the prompt sent as UTF-8 on standard input. If Codex doesn't copy the image (say the sandbox blocks the write), the tool picks up the newly generated image from `~/.codex/generated_images/` (or `CODEX_HOME`) itself.
 
 ## Capability differences
 

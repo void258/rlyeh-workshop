@@ -1,0 +1,23 @@
+# 项目自己的音效，剧本里写 【音效：名字】。
+# 内置的合成音效（破门、锣、幽灵、火焰……）不用写在这里，replay sfx --list 能看到全部名字。
+# 人声类音效用配音后端按角色声线生成：voice 是角色 ID，tone 是语气指示，text 是要喊的内容。
+# space 是声音从哪里传过来：dry 原样 · room 房间里 · next-room 门内、隔壁 · behind-door 闷在门外 · upstairs 隔着楼板
+sounds: {}
+#  scream:
+#    name: 尖叫
+#    voice: hero
+#    tone: 撕心裂肺的惨叫，非常凄厉
+#    text: 啊啊啊啊啊——！！
+#    seeds: [11, 12]          # 生成几版，挑最响的一版
+#    max_seconds: 2.5
+#    space: upstairs
+#  zombie:
+#    name: 僵尸
+#    min_gap: 40              # 至少隔 40 秒才再放一次，重复太多会腻
+#    space: behind-door
+#    layers:                  # 几个声音错开叠在一起
+#      - { voice: hero, tone: 像僵尸一样含混地呻吟, text: 呃……啊……, pitch: -4 }
+#      - { voice: gm, tone: 像僵尸一样低沉地嘶吼, text: 嗬……呃啊……, pitch: -3, at: 0.5, gain: 0.8 }
+#  creak:
+#    name: 吱呀
+#    file: assets/creak.wav   # 自己准备的音效文件

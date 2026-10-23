@@ -12,6 +12,8 @@ dependencies = [
     "numpy>=1.26",
     "soundfile>=0.12",
     "pypinyin>=0.50",
+    "scipy>=1.11",
+    "pillow>=10",
 ]
 
 [project.scripts]

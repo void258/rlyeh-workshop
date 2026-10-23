@@ -20,11 +20,11 @@ default = "claude-code"           # claude-code | codex | dsh
 
 [backends]
 import = "fvtt"
-image = "manual"
+image = "manual"                  # manual 自己放图 | codex | placeholder 占位图
 tts = "drama3"
 asr = "sensevoice"
 align = "funasr-fa"
-music = "manual"
+music = "manual"                  # manual 自己放曲子 | yue2-comfyui | placeholder 占位
 
 [art]
 style = "日系动画风格，干净的赛璐璐上色，低饱和暗色调"

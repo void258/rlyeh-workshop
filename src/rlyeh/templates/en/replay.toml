@@ -20,11 +20,11 @@ default = "claude-code"           # claude-code | codex | dsh
 
 [backends]
 import = "fvtt"
-image = "manual"
+image = "manual"                  # manual (bring your own) | codex | placeholder
 tts = "drama3"
 asr = "whisper"
 align = "whisperx"
-music = "manual"
+music = "manual"                  # manual (bring your own) | yue2-comfyui | placeholder
 
 [art]
 style = "Japanese anime style, clean cel shading, muted dark palette"

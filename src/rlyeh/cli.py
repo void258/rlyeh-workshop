@@ -6,7 +6,7 @@ import re
 import sys
 from importlib import resources
 
-from . import SPEC_VERSION, __version__, i18n, importers, voice
+from . import SPEC_VERSION, __version__, art, i18n, importers, music, sfx, voice
 from .backends import BackendError
 from .backends.worker import WorkerError
 from .i18n import t
@@ -22,6 +22,8 @@ art/_raw/
 art/_overview/
 audio/voice/
 audio/voice-bleep/
+audio/sfx/_takes/
+audio/bgm/takes/
 """
 
 
@@ -58,6 +60,8 @@ def cmd_init(args):
     (target / 'replay.toml').write_text(config, encoding='utf-8')
     (target / 'cast.yaml').write_text((tpl / 'cast.yaml').read_text(encoding='utf-8'), encoding='utf-8')
     (target / 'script' / '01-chapter.md').write_text((tpl / 'chapter.md').read_text(encoding='utf-8'), encoding='utf-8')
+    for name in ('music.yaml', 'sfx.yaml'):
+        (target / name).write_text((tpl / name).read_text(encoding='utf-8'), encoding='utf-8')
     gi = target / '.gitignore'
     if not gi.exists():
         gi.write_text(GITIGNORE, encoding='utf-8')
@@ -112,7 +116,14 @@ def cmd_status(args):
     lines.append(t('cli.status_voice', minutes=round(vs['seconds'] / 60, 1), **{k: v for k, v in vs.items() if k != 'seconds'}))
     if vs['no_voice']:
         lines.append(t('cli.status_no_voice', names='、'.join(vs['no_voice'])))
-    _out(args, dict(ok=True, project=proj.config.get('project', {}), chapters=rows, voice=vs), '\n'.join(lines))
+    ars, ss, ms = art.summary(proj), sfx.summary(proj), music.summary(proj)
+    lines.append(t('cli.status_art', **{k: v for k, v in ars.items() if k != 'unplanned'}))
+    if ars['unplanned']:
+        lines.append(t('cli.status_art_unplanned', n=ars['unplanned']))
+    lines.append(t('cli.status_sfx', **ss))
+    lines.append(t('cli.status_music', **ms))
+    _out(args, dict(ok=True, project=proj.config.get('project', {}), chapters=rows, voice=vs, art=ars, sfx=ss, music=ms),
+         '\n'.join(lines))
     return 0
 
 
@@ -165,6 +176,75 @@ def cmd_bleep(args):
     done, problems = voice.bleep(proj, _progress(args))
     lines = [t('cli.bleep_done', n=len(done))] + [t('cli.bleep_problem', id=p['id'], reason=p['reason']) for p in problems]
     _out(args, dict(ok=not problems, bleeped=done, problems=problems), '\n'.join(lines))
+    return 0
+
+
+def cmd_art(args):
+    proj = _project(args)
+    on = _progress(args)
+    if args.action == 'jobs':
+        created, have = art.scaffold(proj)
+        todo = [j.id for j in art.load_jobs(proj) if j.needs_prompt and not j.skip]
+        lines = [t('cli.art_jobs_done', n=len(created), have=have)]
+        if todo:
+            lines.append(t('cli.art_needs_prompt', ids=', '.join(todo)))
+        _out(args, dict(ok=True, created=created, needs_prompt=todo), '\n'.join(lines))
+    elif args.action == 'run':
+        kinds = _ids(args.kind)
+        res = art.run(proj, _ids(args.ids), kinds, args.force, args.marked, args.limit, on)
+        lines = [t('cli.art_run_done', done=len(res['done']), adopted=len(res['adopted']))]
+        if res['waiting']:
+            lines.append(t('cli.art_waiting'))
+            lines += [f"  {w['out']}" for w in res['waiting']]
+        lines += [t('cli.art_blocked', **b) for b in res['blocked']]
+        _out(args, dict(ok=True, **res), '\n'.join(lines))
+    elif args.action == 'compose':
+        done = art.compose_all(proj, _ids(args.ids))
+        _out(args, dict(ok=True, composed=done), t('cli.art_compose_done', n=len(done)))
+    elif args.action == 'check':
+        report, sheets = art.check(proj)
+        warn = {k: v for k, v in report.items() if v['status'] == 'warn'}
+        missing = sum(1 for v in report.values() if v['status'] in ('missing', 'needs_prompt'))
+        lines = [t('cli.art_check_done', n=len(report), missing=missing, warn=len(warn), sheets=', '.join(sheets) or '—')]
+        lines += [t('cli.art_warn', out=k, notes='; '.join(v['notes'])) for k, v in warn.items()]
+        _out(args, dict(ok=True, report=report, sheets=sheets), '\n'.join(lines))
+    return 0
+
+
+def cmd_sfx(args):
+    proj = _project(args)
+    if args.list:
+        cat = sfx.catalog(proj)
+        lines = [t('cli.sfx_list', id=k, mark='' if v['builtin'] else ' *', aliases='、'.join(v['aliases']) or '—') for k, v in cat.items()]
+        _out(args, dict(ok=True, sounds=cat), '\n'.join(lines))
+        return 0
+    res = sfx.build(proj, set(args.names) or None, args.force, _progress(args))
+    lines = [t('cli.sfx_done', n=len(res['done']), names=', '.join(res['done'])) if res['done'] else t('cli.sfx_none')]
+    lines += [t('cli.sfx_problem', **p) for p in res['problems']]
+    _out(args, dict(ok=not res['problems'], **res), '\n'.join(lines))
+    return 0
+
+
+def cmd_music(args):
+    proj = _project(args)
+    on = _progress(args)
+    if args.action == 'gen':
+        res = music.gen(proj, _ids(args.cues), args.takes, on)
+        lines = [t('cli.music_gen_done', n=len(res['done']), names=', '.join(res['done'])) if res['done'] else t('cli.music_gen_none')]
+        lines += [t('cli.music_waiting', **w) for w in res['waiting']]
+        lines += [t('cli.music_problem', **p) for p in res['problems']]
+        _out(args, dict(ok=not res['problems'], **res), '\n'.join(lines))
+    elif args.action == 'check':
+        report = music.check(proj, _ids(args.cues), on)
+        if report is None:
+            _out(args, dict(ok=True, skipped=True), t('cli.music_check_skipped'))
+            return 0
+        bad = [k for k, v in report.items() if not v['clean']]
+        _out(args, dict(ok=True, report=report, vocals=bad),
+             t('cli.music_check_done', n=len(report), bad=len(bad), ids='：' + ', '.join(bad) if bad else ''))
+    elif args.action == 'pick':
+        rec = music.pick(proj, args.cue, args.choice, args.note or '')
+        _out(args, dict(ok=True, pick=rec), t('cli.music_pick_done', cid=args.cue, file=rec['choice']))
     return 0
 
 
@@ -248,6 +328,41 @@ def build_parser():
     for q in vs.choices.values():
         q.set_defaults(func=cmd_voice)
 
+    p = sub.add_parser('art', help='art: prompts, images, expressions / 美术')
+    arts = p.add_subparsers(dest='action', required=True)
+    arts.add_parser('jobs', parents=[common], help='write starter prompts / 写起步用的提示词')
+    q = arts.add_parser('run', parents=[common], help='generate images / 生成图片')
+    q.add_argument('--ids', help='job IDs or output paths / 任务 ID 或输出路径')
+    q.add_argument('--kind', help='sprite,expression,background,cg,item')
+    q.add_argument('--force', action='store_true')
+    q.add_argument('--marked', action='store_true', help='images rejected in review / 审核打回的')
+    q.add_argument('--limit', type=int, default=0)
+    q = arts.add_parser('compose', parents=[common], help='composite expressions / 合成表情差分')
+    q.add_argument('--ids')
+    arts.add_parser('check', parents=[common], help='check images, overview sheets / 检查图片、拼总览图')
+    for q in arts.choices.values():
+        q.set_defaults(func=cmd_art)
+
+    p = sub.add_parser('sfx', parents=[common], help='sound effects / 音效')
+    p.add_argument('names', nargs='*')
+    p.add_argument('--force', action='store_true')
+    p.add_argument('--list', action='store_true', help='list sounds and aliases / 列出音效和别名')
+    p.set_defaults(func=cmd_sfx)
+
+    p = sub.add_parser('music', help='background music / BGM')
+    ms = p.add_subparsers(dest='action', required=True)
+    q = ms.add_parser('gen', parents=[common], help='generate takes / 生成')
+    q.add_argument('--cues', help='cue IDs, comma separated / 曲目 ID，逗号分隔')
+    q.add_argument('--takes', type=int, default=1, help='takes per cue / 每段至少几版')
+    q = ms.add_parser('check', parents=[common], help='check for vocals / 检查有没有唱出词')
+    q.add_argument('--cues')
+    q = ms.add_parser('pick', parents=[common], help='choose a take / 选定一版')
+    q.add_argument('cue')
+    q.add_argument('choice', help='take number or file / 版本序号或文件名')
+    q.add_argument('--note')
+    for q in ms.choices.values():
+        q.set_defaults(func=cmd_music)
+
     p = sub.add_parser('bleep', parents=[common], help='bleep profanity / 消音')
     p.set_defaults(func=cmd_bleep)
     p = sub.add_parser('preview', parents=[common], help='local preview and review pages / 本地预览与审核页')
@@ -271,7 +386,7 @@ def main(argv=None):
     except ProjectError as e:
         _out(args, dict(ok=False, error=str(e)), str(e))
         return 2
-    except (voice.VoiceError, BackendError, WorkerError) as e:
+    except (voice.VoiceError, art.ArtError, sfx.SfxError, music.MusicError, BackendError, WorkerError) as e:
         _out(args, dict(ok=False, error=str(e)), t('cli.error', err=e))
         return 3
 

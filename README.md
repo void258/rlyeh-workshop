@@ -6,7 +6,7 @@
 
 把 FVTT 等平台导出的跑团记录交给拉莱耶工坊，由你常用的 AI（Claude Code、Codex、DeepSeek Harness）来润色剧本、设计角色、写美术和音乐提示词；拉莱耶工坊负责配音、质检、消音、立绘后处理、BGM、音效，最后生成一个能在浏览器里播放的视觉小说，以及逐帧渲染出来的视频。选声线、审美术、逐句审听这些需要品味的环节，留给你在图形界面里把关。
 
-> **状态：M1 进行中。** 规格（M0）已定稿；目前能用的是导入跑团记录（`replay import`）、剧本解析和校验（`replay lint`、`replay ids`）、配音一整条线（`replay voice design / pick / build / qa / redo`、`replay bleep`）以及选声线和逐句审听页（`replay preview`）；美术、播放器、渲染还在搬进来。欢迎在 Issues 里讨论设计。
+> **状态：M1 进行中。** 规格（M0）已定稿；目前能用的是导入跑团记录（`replay import`）、剧本解析和校验（`replay lint`、`replay ids`）、配音一整条线（`replay voice design / pick / build / qa / redo`、`replay bleep`）、美术（`replay art jobs / run / compose / check`，Codex 生图、表情差分合成）、音效（`replay sfx`）、BGM（`replay music gen / check / pick`，YuE2 先找无人声乐谱再渲染），以及选声线、逐句审听、美术审核、BGM 试听这几个页面（`replay preview`）；播放器、渲染、压制还在搬进来。欢迎在 Issues 里讨论设计。
 
 ## 它能做什么
 

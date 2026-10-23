@@ -54,11 +54,12 @@ class Drama3:
         return dst.as_posix()
 
     def request(self, item):
-        """item: dict(id, text, tone, refs=[(音频, 文本)], seed)。返回 audio.cpp 的一条请求。"""
+        """item: dict(id, text, tone, refs=[(音频, 文本)], seed, max_tokens=可选)。返回 audio.cpp 的一条请求。"""
         refs = [dict(audio_path=self._ascii_ref(a), text=t) for a, t in item['refs']]
         text = (f'[{item["tone"]}]' if item.get('tone') else '') + item['text']
+        gen = dict(self.gen, max_tokens=str(item['max_tokens'])) if item.get('max_tokens') else self.gen   # 音效限短，免得拖一大段
         return dict(id=item['id'], seed=int(item['seed']), text=text,
-                    options=dict(self.gen, references=json.dumps(refs, ensure_ascii=False)))
+                    options=dict(gen, references=json.dumps(refs, ensure_ascii=False)))
 
     def _run(self, requests, name, on_line):
         raw = self.work / 'raw'

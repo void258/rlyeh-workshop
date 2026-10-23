@@ -25,9 +25,9 @@
 | `replay lint` / `replay ids` | 校验剧本 / 补台词 ID |
 | `replay voice design\|build\|qa\|redo <ID…>` | 声线候选 / 生成配音 / 质检 / 换种子重做 |
 | `replay bleep` | 消音 |
-| `replay art jobs\|run\|compose\|overview` | 生图任务 / 生成 / 差分合成 / 总览图 |
-| `replay music gen\|check` | 生成 BGM / 查人声 |
-| `replay sfx` | 生成音效库 |
+| `replay art jobs\|run\|compose\|check` | 写起步提示词 / 生成（`--marked` 重画审核打回的）/ 重新合成差分 / 检查和总览图 |
+| `replay music gen\|check\|pick` | 生成 BGM / 查人声 / 选定一版 |
+| `replay sfx [--list]` | 生成音效（内置合成 + sfx.yaml）/ 列出音效和别名 |
 | `replay build` | 打包播放器数据 |
 | `replay preview` | 启动本地预览（播放器、审核页） |
 | `replay render [--chapter N] [--from ID --seconds S] [--remix]` | 逐帧渲染 / 只重新混音 |
@@ -162,6 +162,8 @@ tool_timeout_sec = 600        # 跑阶段的工具可能很久，长任务本身
 2. 模型和推理强度按 `[harness.codex]`，不留空。
 3. 固定指令：直接调用一次生图，提示词原样使用；不读额外说明、不上网搜索、不找参考图、不做额外检查；生成后把图片复制到指定路径，只回复路径。
 4. 需要保持造型一致时（差分、CG），先让 Codex 打开项目里的参考图，明确说明这是本项目的素材，不是去找参考图。
+
+实际的调用：`codex exec -m <模型> -c model_reasoning_effort="<强度>" --skip-git-repo-check --ephemeral -s workspace-write -C <项目目录> -o <最后回复> --image=<底图或参考图> -`，固定指令和提示词按 UTF-8 从标准输入传进去。Codex 没把图复制过去时（例如沙箱不让写），工具自己到 `~/.codex/generated_images/`（或 `CODEX_HOME`）取这次新生成的那张。
 
 ## 能力差异
 

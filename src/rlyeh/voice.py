@@ -3,9 +3,7 @@
 规矩见 docs/zh/pipeline.md 的「声线」「配音」「消音」：每个角色一段固定参考，不滚动参考；整句连续生成，
 脏话照念、之后再消音；质检按拼音比相似度并看时长。
 """
-import datetime
 import difflib
-import json
 import pathlib
 import re
 
@@ -15,6 +13,7 @@ from pypinyin import lazy_pinyin
 
 from . import backends
 from .state import State, digest
+from .util import now, read_json, write_json  # noqa: F401  （voice.read_json 等给别的模块和测试用）
 
 CANDIDATES = 'voices/candidates'
 EXTRA = 'voices/extra'
@@ -33,21 +32,6 @@ SAMPLE = {   # 声线候选默认念的话：故意不用剧本里的台词，�
 
 class VoiceError(RuntimeError):
     pass
-
-
-def read_json(path, default):
-    path = pathlib.Path(path)
-    return json.loads(path.read_text(encoding='utf-8')) if path.exists() else default
-
-
-def write_json(path, data):
-    path = pathlib.Path(path)
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(data, ensure_ascii=False, indent=1), encoding='utf-8')
-
-
-def now():
-    return datetime.datetime.now().astimezone().isoformat(timespec='seconds')
 
 
 def settings(project):

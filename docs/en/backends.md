@@ -48,9 +48,10 @@ The license column reflects what was known at M0. **Each license will be checked
 | Kind | Backend | Notes | License (to be verified) |
 |---|---|---|---|
 | import | Foundry VTT, plain text | FVTT used in production | This project's code |
-| image | Codex (`codex exec`) | Used in production; needs the user's own Codex | Governed by OpenAI's terms |
-| image | ComfyUI | Runs the user's own workflows | Depends on the models used |
+| image | Codex (`codex exec`) | Used in production; needs the user's own Codex, with model and effort set in `[harness.codex]` | Governed by OpenAI's terms |
+| image | ComfyUI | Runs the user's own workflows (planned) | Depends on the models used |
 | image | Manual import | Bring your own images | — |
+| image | Placeholder | Simple silhouettes and gradients, to run the pipeline end to end | This project's code |
 | voice_design | Qwen3-TTS | VoiceDesign + Base cloning | To be verified |
 | tts | Fish Audio Drama 3 (local audio.cpp build) | Used in production; supports bracketed tone directions | Fish Audio community license: requires "Built with Fish Audio" attribution; only consented voices may be cloned (designed synthetic voices are fine) |
 | asr | SenseVoice | Used in production for voice QA | To be verified |
@@ -58,6 +59,7 @@ The license column reflects what was known at M0. **Each license will be checked
 | asr / align (English) | Whisper + WhisperX | For English projects | Whisper is MIT; WhisperX to be verified |
 | music | YuE2 (through ComfyUI) | Used in production; can produce a score before rendering | Weights are CC BY-NC 4.0: **non-commercial only**, attribution required |
 | music | Manual import | Your own music | — |
+| music | Placeholder | A soft chord pad, to run the pipeline end to end | This project's code |
 | sfx | Built-in synthesized library | Synthesized by this project | Released with this project (Apache-2.0) |
 | encode | ffmpeg | NVENC / AMF / QSV / CPU | Uses the system ffmpeg; if an installer bundles ffmpeg, it uses an LGPL build |
 

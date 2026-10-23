@@ -3,19 +3,23 @@
   /                  首页
   /voices            选声线：试听候选、选定（写 review/voice-pick.json）
   /review/voice      逐句审听：连续播放、看质检、标重做（写 review/voice-review.json）
-  /files/<路径>      项目里的文件（音频等），不缓存，重做后马上听到新版本
+  /review/art        美术审核：逐张通过或打回（写 review/art-review.json）
+  /review/music      BGM 试听：每段曲子选一版（写 review/music-review.json，复制成 audio/bgm/<曲目ID>）
+  /files/<路径>      项目里的文件（音频、图片），不缓存，重做后马上看到、听到新版本
 """
 import http.server
 import json
 import urllib.parse
 from importlib import resources
 
-from .. import voice
+from .. import art, backends, music, voice
 from ..script.model import Scene
 from ..state import State
+from ..util import read_json, save_marks
 
 STATIC = resources.files('rlyeh') / 'preview' / 'static'
-PAGES = {'/': 'index.html', '/voices': 'voices.html', '/review/voice': 'review.html'}
+PAGES = {'/': 'index.html', '/voices': 'voices.html', '/review/voice': 'review.html', '/review/art': 'art.html',
+         '/review/music': 'music.html'}
 
 
 def meta(project):
@@ -62,16 +66,52 @@ def lines_data(project):
     return dict(meta=meta(project), lines=out, marks=marks)
 
 
-def save_marks(project, body):
-    """body: {id: {status, note}}。只接受 redo / pending / approved / skip。"""
-    marks = voice.read_json(project.root / voice.REVIEW, {})
-    for k, v in body.items():
-        status = v.get('status', 'redo')
-        if status not in ('redo', 'pending', 'approved', 'skip'):
+def _url(project, rel):
+    path = project.root / rel
+    v = int(path.stat().st_mtime) if path.exists() else 0
+    return '/files/' + urllib.parse.quote(rel) + f'?v={v}'
+
+
+def art_data(project):
+    state = State(project.root)
+    reviews = read_json(project.root / art.REVIEW, {})
+    checked = read_json(project.root / art.CHECK, {})
+    items = []
+    for job in art.load_jobs(project):
+        if job.skip:
             continue
-        marks[k] = dict(status=status, note=str(v.get('note', ''))[:500], by=v.get('by', ''), at=voice.now())
-    voice.write_json(project.root / voice.REVIEW, marks)
-    return marks
+        exists = (project.root / job.out).exists()
+        rec = state.get(job.out)
+        if job.needs_prompt and not exists:
+            status = 'needs_prompt'
+        elif not exists:
+            status = 'missing'
+        elif rec and rec.get('inputs') != art._inputs(project, job):
+            status = 'stale'
+        else:
+            status = 'done'
+        items.append(dict(id=job.id, kind=job.kind, name=job.name, char=job.char, out=job.out, status=status,
+                          url=_url(project, job.out) if exists else None, transparent=job.transparent,
+                          notes=(checked.get(job.out) or {}).get('notes') or [], review=reviews.get(job.out)))
+    chars = {c.id: dict(name=c.name(project.lang), color=c.color) for c in project.characters.values()}
+    return dict(meta=meta(project), items=items, chars=chars)
+
+
+def music_data(project):
+    bid = (project.config.get('backends') or {}).get('music', backends.DEFAULTS['music'])
+    reviews = read_json(project.root / music.REVIEW, {})
+    checked = read_json(project.root / music.CHECK, {})
+    out = []
+    for cid, cue in music.cues(project).items():
+        inputs = music._inputs(cue, bid)
+        pick = reviews.get(cid)
+        takes = [dict(key=k, url=_url(project, t['file']), file=t['file'], seed=t.get('seed'), seconds=t.get('seconds'),
+                      current=t.get('source') == 'manual' or t.get('inputs') == inputs, check=checked.get(k),
+                      picked=bool(pick and pick.get('choice') == t['file'])) for k, t in music.cue_takes(project, cid)]
+        name = cue['names'].get(project.lang) or next(iter(cue['names'].values()), cid)
+        out.append(dict(id=cid, name=name, style=cue['style'], lyrics=None if cue['instrumental'] else cue['lyrics'],
+                        instrumental=cue['instrumental'], seconds=cue['seconds'], takes=takes, pick=pick))
+    return dict(meta=meta(project), cues=out, battle=music.battle_cue(project))
 
 
 def make_handler(project):
@@ -100,13 +140,18 @@ def make_handler(project):
                 self._json(voices_data(project))
             elif path == '/api/lines':
                 self._json(lines_data(project))
+            elif path == '/api/art':
+                self._json(art_data(project))
+            elif path == '/api/music':
+                self._json(music_data(project))
             elif path.startswith('/files/'):
                 target = (root / path[len('/files/'):]).resolve()
                 if root not in target.parents or not target.is_file():
                     self._send(404, b'not found', 'text/plain')
                     return
-                ctype = {'.wav': 'audio/wav', '.flac': 'audio/flac', '.mp3': 'audio/mpeg', '.png': 'image/png',
-                         '.webp': 'image/webp', '.json': 'application/json'}.get(target.suffix.lower(), 'application/octet-stream')
+                ctype = {'.wav': 'audio/wav', '.flac': 'audio/flac', '.mp3': 'audio/mpeg', '.ogg': 'audio/ogg',
+                         '.png': 'image/png', '.webp': 'image/webp', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg',
+                         '.json': 'application/json'}.get(target.suffix.lower(), 'application/octet-stream')
                 self._send(200, target.read_bytes(), ctype)
             else:
                 self._send(404, b'not found', 'text/plain')
@@ -118,10 +163,14 @@ def make_handler(project):
                 if path == '/api/voices/pick':
                     self._json(dict(ok=True, pick=voice.pick(project, body['id'], body['choice'], body.get('note', ''))))
                 elif path == '/api/review':
-                    self._json(dict(ok=True, marks=save_marks(project, body)))
+                    self._json(dict(ok=True, marks=save_marks(project.root / voice.REVIEW, body)))
+                elif path == '/api/art/review':
+                    self._json(dict(ok=True, marks=save_marks(project.root / art.REVIEW, body)))
+                elif path == '/api/music/pick':
+                    self._json(dict(ok=True, pick=music.pick(project, body['id'], body['choice'], body.get('note', ''))))
                 else:
                     self._send(404, b'not found', 'text/plain')
-            except (ValueError, KeyError, voice.VoiceError) as e:
+            except (ValueError, KeyError, AttributeError, voice.VoiceError, music.MusicError, art.ArtError) as e:
                 self._json(dict(ok=False, error=str(e)), 400)
 
     return Handler

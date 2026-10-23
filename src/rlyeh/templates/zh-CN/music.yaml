@@ -1,0 +1,14 @@
+# 曲目表。曲目 ID 只用 ASCII；name 是剧本里 【BGM：…】 写的名字。
+# style 写风格、配器、情绪、速度（YuE2 用英文写效果更好），纯音乐写上 Instrumental, no vocals。
+# 写了 lyrics 的是带词的歌（例如片尾曲）；没写的当纯音乐，生成时先找人声声部是空的乐谱再渲染。
+battle: battle            # 战斗开始时自动切的曲目，战斗结束切回原来的
+
+cues:
+  main:
+    name: { zh-CN: 主题, en: Main theme }
+    style: Instrumental, no vocals, dark fantasy anime soundtrack, mysterious overture, harp arpeggios, low strings, soft pads, slow 72 BPM
+    seconds: 150
+  battle:
+    name: { zh-CN: 战斗, en: Battle }
+    style: Instrumental, no vocals, dark fantasy battle music, driving taiko and war drums, fast staccato strings, heavy brass stabs, 150 BPM
+    seconds: 150

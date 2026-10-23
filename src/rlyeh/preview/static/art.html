@@ -1,0 +1,124 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Art review</title>
+<style>
+:root{--bg:#141210;--panel:#1d1a17;--line:#342e27;--fg:#ece4d6;--mu:#9b9083;--gold:#d9a85b;--ok:#7fc48f;--bad:#e8866e;
+--chk:conic-gradient(#3e3a34 25%,#2e2a25 0 50%,#3e3a34 0 75%,#2e2a25 0) 0 0/22px 22px}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.6 "PingFang SC","Microsoft YaHei","Noto Sans SC",system-ui,sans-serif}
+.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:#141210f2;backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+.top .in{max-width:1200px;margin:0 auto;padding:10px 16px;display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center}
+.top h1{font:600 18px/1.2 "Noto Serif SC","Source Han Serif SC",serif;margin:0;letter-spacing:.06em}
+.top a{color:var(--gold);font-size:13px}
+.stat{color:var(--mu);font-size:13px}.stat b{color:var(--fg)}
+label.f{font-size:13px;color:var(--mu);cursor:pointer;user-select:none}
+main{max-width:1200px;margin:0 auto;padding:12px 16px 120px}
+h2{font:600 20px/1.3 "Noto Serif SC","Source Han Serif SC",serif;margin:30px 0 12px;color:var(--c,var(--gold));display:flex;gap:12px;align-items:center}
+h2::after{content:"";flex:1;border-top:1px solid var(--line)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:12px}
+.grid.wide{grid-template-columns:repeat(auto-fill,minmax(280px,1fr))}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;overflow:hidden;display:flex;flex-direction:column}
+.card.approved{border-color:#4d7a58}.card.redo{border-color:var(--bad)}
+.th{aspect-ratio:2/3;background:var(--chk);display:flex;align-items:center;justify-content:center;cursor:zoom-in}
+.wide .th{aspect-ratio:16/9}.th.sq{aspect-ratio:1}
+.th img{width:100%;height:100%;object-fit:contain}
+.th .ph{color:var(--mu);font-size:13px;padding:12px;text-align:center;cursor:default}
+.meta{padding:8px 10px 10px;font-size:13px;display:flex;flex-direction:column;gap:6px}
+.meta b{font-size:14px;overflow-wrap:anywhere}.meta b small{color:var(--mu);font-weight:400;margin-left:6px}
+.chip{display:inline-block;font-size:12px;border:1px solid var(--line);border-radius:4px;padding:0 6px;color:var(--mu)}
+.chip.stale,.chip.needs_prompt{color:var(--gold);border-color:#6b5532}.chip.missing{opacity:.7}
+.warn{color:var(--bad);font-size:12px}
+.acts{display:flex;gap:6px}
+.acts button{flex:1;border:1px solid var(--line);background:transparent;color:var(--mu);border-radius:6px;padding:2px 8px;cursor:pointer;font:inherit;font-size:12.5px}
+.acts button:disabled{opacity:.3;cursor:default}
+.card.approved .ok{border-color:var(--ok);color:var(--ok)}.card.redo .rd{border-color:var(--bad);color:var(--bad)}
+.note input{width:100%;background:#00000040;border:1px solid var(--bad);border-radius:6px;color:var(--fg);font:inherit;font-size:12.5px;padding:4px 8px}
+#lb{position:fixed;inset:0;background:#000000e0;display:flex;align-items:center;justify-content:center;z-index:9;cursor:zoom-out}
+#lb img{max-width:96vw;max-height:94vh;background:var(--chk)}
+.empty{color:var(--mu);margin:40px 0}
+</style>
+<div class="top"><div class="in">
+  <h1 id="h"></h1><a href="/" id="home"></a>
+  <span class="stat" id="stat"></span>
+  <label class="f"><input type="checkbox" id="onlyOpen"> <span id="lOpen"></span></label>
+  <span class="stat" id="saved"></span>
+</div></div>
+<main id="list"></main>
+<div id="lb" hidden><img alt=""></div>
+<script>
+const T={zh:{h:'美术审核',home:'首页',open:'只看没通过的',background:'背景',cg:'CG',item:'道具',base:'基础立绘',
+st:{done:'已生成',stale:'过期：提示词或底图改了',missing:'未生成',needs_prompt:'提示词待写'},
+ok:'通过',redo:'打回',note:'哪里不对？比如：表情不够凶 / 手多了一根指头（AI 会照着改提示词再画）',
+empty:'还没有生图任务：运行 replay art jobs',
+stat:(n,d,a,r)=>`共 <b>${n}</b> 张 · 已生成 <b>${d}</b> · 通过 <b>${a}</b> · 打回 <b>${r}</b>`,saved:'已保存',fail:'保存失败'},
+en:{h:'Art review',home:'Home',open:'Open items only',background:'Backgrounds',cg:'CG',item:'Items',base:'base sprite',
+st:{done:'generated',stale:'stale: prompt or base changed',missing:'not generated',needs_prompt:'prompt to write'},
+ok:'Approve',redo:'Reject',note:'What is wrong? e.g. not angry enough / an extra finger (the AI revises the prompt and redraws)',
+empty:'No image jobs yet: run replay art jobs',
+stat:(n,d,a,r)=>`<b>${n}</b> images · <b>${d}</b> generated · <b>${a}</b> approved · <b>${r}</b> rejected`,saved:'saved',fail:'save failed'}};
+let L='zh',D=null,M={},timer=null,pending={};const $=s=>document.querySelector(s);
+function esc(s){return String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
+function groups(){
+  const g=new Map();
+  for(const x of D.items){
+    const key=x.char?'char:'+x.char:x.kind;
+    if(!g.has(key))g.set(key,[]);g.get(key).push(x);
+  }
+  const order=k=>k.startsWith('char:')?0:{background:1,cg:2,item:3}[k];
+  return [...g.entries()].sort((a,b)=>order(a[0])-order(b[0]));
+}
+function card(x){
+  const t=T[L],st=M[x.out]?.status||'pending',c=document.createElement('div');
+  c.className=`card ${st}`;
+  const shape=x.kind==='item'?' sq':'';
+  c.innerHTML=`<div class="th${shape}">${x.url?`<img loading="lazy" src="${x.url}" alt="">`:`<div class="ph">${t.st[x.status]}</div>`}</div>
+    <div class="meta"><b>${esc(x.name)}${x.kind==='sprite'?`<small>${t.base}</small>`:''}</b>
+      ${x.status!=='done'?`<span><span class="chip ${x.status}">${t.st[x.status]}</span></span>`:''}
+      ${x.notes.map(n=>`<span class="warn">⚠ ${esc(n)}</span>`).join('')}
+      <div class="acts"><button class="ok" ${x.url?'':'disabled'}>${t.ok}</button><button class="rd" ${x.url?'':'disabled'}>${t.redo}</button></div>
+      ${st==='redo'?`<div class="note"><input placeholder="${esc(t.note)}" value="${esc(M[x.out].note||'')}"></div>`:''}</div>`;
+  const img=c.querySelector('.th img');if(img)img.parentElement.onclick=()=>{$('#lb img').src=x.url;$('#lb').hidden=false};
+  c.querySelector('.ok').onclick=()=>set(x.out,st==='approved'?'pending':'approved');
+  c.querySelector('.rd').onclick=()=>set(x.out,st==='redo'?'pending':'redo');
+  const ni=c.querySelector('.note input');if(ni)ni.oninput=()=>{M[x.out].note=ni.value;save({[x.out]:M[x.out]})};
+  return c;
+}
+function set(out,status){M[out]={status,note:M[out]?.note||''};save({[out]:M[out]});render()}
+function render(){
+  const t=T[L],list=$('#list'),open=$('#onlyOpen').checked;list.innerHTML='';
+  if(!D.items.length){list.innerHTML=`<p class="empty">${t.empty}</p>`}
+  for(const [key,items] of groups()){
+    const shown=items.filter(x=>!open||M[x.out]?.status!=='approved');if(!shown.length)continue;
+    const h=document.createElement('h2');
+    if(key.startsWith('char:')){const ch=D.chars[key.slice(5)]||{};h.textContent=ch.name||key.slice(5);if(ch.color)h.style.setProperty('--c',ch.color)}
+    else h.textContent=t[key];
+    const g=document.createElement('div');g.className='grid'+(key==='background'||key==='cg'?' wide':'');
+    shown.forEach(x=>g.append(card(x)));list.append(h,g);
+  }
+  const n=D.items.length,d=D.items.filter(x=>x.url).length,a=D.items.filter(x=>M[x.out]?.status==='approved').length,
+    r=D.items.filter(x=>M[x.out]?.status==='redo').length;
+  $('#stat').innerHTML=t.stat(n,d,a,r);
+}
+function save(part){
+  Object.assign(pending,part);clearTimeout(timer);
+  timer=setTimeout(()=>{const body=pending;pending={};
+    fetch('/api/art/review',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)})
+      .then(r=>{$('#saved').textContent=r.ok?T[L].saved:T[L].fail}).catch(()=>{$('#saved').textContent=T[L].fail})},400);
+}
+$('#lb').onclick=()=>{$('#lb').hidden=true};
+$('#onlyOpen').onchange=render;
+async function load(first){
+  const d=await (await fetch('/api/art')).json();
+  if(first){
+    L=(new URLSearchParams(location.search).get('lang')||d.meta.lang||navigator.language).startsWith('en')?'en':'zh';
+    document.documentElement.lang=L==='en'?'en':'zh-CN';const t=T[L];
+    document.title=`${t.h} · ${d.meta.title}`;$('#h').textContent=t.h;$('#home').textContent=t.home;$('#lOpen').textContent=t.open;
+    for(const x of d.items)if(x.review)M[x.out]=x.review;
+  }
+  const changed=JSON.stringify(d.items.map(x=>[x.out,x.url,x.status]))!==JSON.stringify(D?.items.map(x=>[x.out,x.url,x.status]));D=d;
+  if(first||changed){const y=scrollY;render();scrollTo(0,y)}
+}
+load(true);
+setInterval(()=>{if(!document.querySelector('.note input:focus'))load(false)},20000);
+</script>

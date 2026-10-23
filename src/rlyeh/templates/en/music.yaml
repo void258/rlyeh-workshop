@@ -1,0 +1,15 @@
+# Cue sheet. Cue IDs are ASCII only; name is what the script writes in [[bgm: ...]].
+# style: genre, instruments, mood and tempo; write "Instrumental, no vocals" for instrumentals.
+# Cues with lyrics are songs (an ending theme, say); the rest are instrumentals, and generation first looks for a score
+# whose vocal part is empty before rendering it.
+battle: battle            # cue switched to when a battle starts; the previous cue returns when it ends
+
+cues:
+  main:
+    name: { en: Main theme, zh-CN: 主题 }
+    style: Instrumental, no vocals, dark fantasy anime soundtrack, mysterious overture, harp arpeggios, low strings, soft pads, slow 72 BPM
+    seconds: 150
+  battle:
+    name: { en: Battle, zh-CN: 战斗 }
+    style: Instrumental, no vocals, dark fantasy battle music, driving taiko and war drums, fast staccato strings, heavy brass stabs, 150 BPM
+    seconds: 150

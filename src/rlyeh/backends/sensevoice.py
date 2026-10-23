@@ -16,8 +16,8 @@ class SenseVoice:
         self.cfg = cfg
 
     def transcribe(self, files, language='zh-CN', on_line=None):
-        """返回 {文件路径: 识别文字}。"""
-        lang = 'zh' if language.startswith('zh') else 'en'
+        """返回 {文件路径: 识别文字}。language: zh-CN | en | auto。"""
+        lang = {'zh': 'zh', 'en': 'en'}.get(language[:2], 'auto')        # auto：查 BGM 里有没有人声时用
         job = dict(model=self.cfg.get('model', 'iic/SenseVoiceSmall'), device=self.cfg.get('device', 'cuda:0'),
                    language=lang, files=[str(f) for f in files])
         return worker.run(self.cfg.get('python', 'python'), 'sensevoice.py', job, on_line)['texts']

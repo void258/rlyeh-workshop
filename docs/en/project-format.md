@@ -10,6 +10,8 @@ A replay is a project folder. Studio, the CLI and the AI all read and write it; 
 my-replay/
 ├── replay.toml          project config
 ├── cast.yaml            cast sheet
+├── music.yaml           cue sheet (BGM)
+├── sfx.yaml             the project's own sound effects (optional)
 ├── logs/                original logs (read-only once imported)
 │   ├── raw/             exported files, kept as-is
 │   └── events.jsonl     normalized event stream
@@ -18,16 +20,16 @@ my-replay/
 │   └── 02-treant-forest.md
 ├── voices/              voice candidates and chosen fixed references
 ├── art/
-│   ├── prompts/         image prompts (written by the AI, editable by people)
+│   ├── prompts/         image prompts, one file per image (written by the AI, editable by people)
 │   ├── sprites/<char-id>/<char-id>_<expression>.png
 │   ├── backgrounds/  cg/  items/
-│   ├── _raw/            raw generations (before expression compositing)
+│   ├── _raw/            raw edit outputs (before expression compositing); history/ keeps images replaced by redraws
 │   └── _overview/       overview sheets for review
 ├── audio/
 │   ├── voice/<line-id>.wav        voice as generated
 │   ├── voice-bleep/<line-id>.wav  bleeped versions (only lines with profanity)
-│   ├── bgm/<cue-id>.flac
-│   └── sfx/
+│   ├── bgm/<cue-id>.flac          chosen BGM; takes/ holds the generated takes
+│   └── sfx/<sfx-id>.wav           sound effects; index.json lists names, aliases and durations
 ├── review/              human review results (written by Studio, read by the AI)
 ├── build/               regenerable outputs: player data, rendered frames, final videos
 └── .rlyeh/              state and caches: state.json, task records, logs
@@ -37,6 +39,7 @@ Rules:
 
 - **File names and IDs are ASCII only.** Non-ASCII paths break a surprising number of tools (production hit this with audio.cpp and the Windows console encoding). Characters, cues and scenes have ASCII IDs in the config; display names can be in any language.
   - Exception: script file names and human-facing docs may use any language; tools don't depend on those names.
+  - File names the tools derive turn Chinese into pinyin: the expression 平静 → `pingjing`, the scene 羊角旅馆 → `yangjiaolvguan`.
 - `logs/raw/` is read-only after the import stage.
 - `build/` and `.rlyeh/` can be deleted and rebuilt at any time; keep them out of git.
 - Large files (audio, images, video) should use Git LFS or stay out of version control. Studio writes a suitable `.gitignore` when creating a project.
@@ -75,12 +78,12 @@ model = "deepseek-v4-flash"
 
 [backends]                        # which backend each capability uses; see backends.md
 import = "fvtt"
-image = "codex"                   # codex | comfyui | openai | manual
+image = "codex"                   # codex | manual | placeholder (comfyui and openai planned)
 voice_design = "qwen3-tts"
 tts = "drama3"
 asr = "sensevoice"
 align = "funasr-fa"
-music = "yue2-comfyui"            # yue2-comfyui | ace-step | manual
+music = "yue2-comfyui"            # yue2-comfyui | manual | placeholder (ace-step planned)
 
 [backends.drama3]                 # per-backend settings
 cli = "D:/vtts/audio.cpp/build/bin/audiocpp_cli.exe"
@@ -171,6 +174,26 @@ Voice files:
 | `review/voice-pick.json` | Which candidate each character uses (written by the voice page; `voice.reference` in cast.yaml takes precedence) |
 | `build/voice_qa.json` | Per-line QA: similarity, recognized text, duration, pass/fail |
 
+### Art and music settings
+
+```toml
+[backends.codex]                  # all optional. Model and effort come from [harness.codex]; if missing it's an error,
+bin = "codex"                     #   never a fallback to Codex's own defaults. bin may also be a list, e.g. ["node", "codex.js"]
+timeout = 900                     # seconds to wait per image
+
+[backends.yue2-comfyui]
+url = "http://127.0.0.1:8188"     # ComfyUI must be running with the ComfyUI-YuE2 nodes installed
+vram = "16 GB"                    # 12 GB | 16 GB | 24 GB | 32 GB | 48 GB
+
+[music]
+search_from = 3001                # vocal-free score search for instrumentals starts at this seed
+search_limit = 12                 # and tries at most this many seeds
+seconds = 160                     # default length when a cue doesn't say
+check_chunk = 20                  # seconds per recognition chunk in the vocal check
+```
+
+`image = "placeholder"` and `music = "placeholder"` are placeholder backends too: simple silhouettes and gradients, and a soft chord pad, so the pipeline runs end to end.
+
 ## Imported logs
 
 `replay import` merges every export in `logs/raw/` (txt, zip) into `logs/events.jsonl`, one event per line:
@@ -237,6 +260,121 @@ characters:
     voice: { gender: male, reference: voices/gm_2.wav }
 ```
 
+## Image prompts: art/prompts/
+
+One markdown file per image: the front matter says what the image is, where it goes and which base and reference images it uses; the body is the prompt. `replay art jobs` writes a starter prompt for every image that has none yet, from cast.yaml and the script: sprites are assembled from `appearance` and the expression descriptions, while backgrounds, CGs and items get a `<!-- TODO -->` for the AI to fill in. Existing files are never overwritten.
+
+```markdown
+---
+kind: expression
+name: furious
+char: nongtan
+out: art/sprites/nongtan/nongtan_furious.png
+base: art/sprites/nongtan/nongtan_cocky.png
+refs: []
+transparent: true
+---
+
+Edit this image and change only the facial expression; keep everything else exactly the same: ...
+
+New expression: brows knotted, roaring with the mouth wide open
+
+no fake details or fake textures; no text, watermark, signature or border; do not change the canvas size or the character position.
+```
+
+| Field | Meaning |
+|---|---|
+| `kind` | `sprite` base sprite · `expression` expression variant · `background` · `cg` event CG · `item` |
+| `name` | The expression name, or the scene / CG / item name as written in the script (the player finds images by it) |
+| `char` | The character a sprite or variant belongs to |
+| `out` | Output image |
+| `base` | The variant's base image (the base sprite) |
+| `refs` | Reference images that keep designs consistent (e.g. a CG referencing the final scene image) |
+| `transparent` | Whether a transparent background is required (default for sprites, variants and items) |
+| `skip` | `true` means don't generate this one |
+| `full_redraw` | `true` when a variant changes the whole character (e.g. turns into a ghost): no face compositing |
+
+Rules:
+
+- The body goes to the image backend verbatim, minus `<!-- comments -->`; `[art] always_append` is added at the end if it isn't there.
+- Bodies that still contain `<!-- TODO` are not generated.
+- The base sprite is the character's `default_expression`; every other expression is a variant edited from it.
+- When the prompt, base or a reference changes, the image is stale and the next `replay art run` redraws it; the replaced image goes to `art/_raw/history/`.
+- An image already at the output path that the tools didn't make (placed by hand) is adopted, never overwritten.
+
+## Cue sheet: music.yaml
+
+```yaml
+battle: battle                    # cue switched to when a battle starts; the previous cue returns when it ends
+cues:
+  tavern:
+    name: { en: Tavern, zh-CN: 酒馆 }
+    style: Instrumental, no vocals, medieval fantasy tavern folk music, lute, fiddle, hand drum, cheerful, 112 BPM
+    seconds: 160
+  ending:
+    name: Ending theme
+    style: English, dark fantasy anime ending theme, warm clear female vocal, acoustic guitar, piano, 88 BPM
+    lyrics: |
+      [Verse]
+      The mist has not yet lifted as we push the door
+      ...
+```
+
+| Field | Meaning |
+|---|---|
+| `battle` | Cue switched to when a battle starts (defaults to the cue called `battle`) |
+| `name` | Display name; the script's `[[bgm: ...]]` may use the display name or the cue ID |
+| `style` | Genre, instruments, mood, tempo; write `Instrumental, no vocals` for instrumentals |
+| `lyrics` | Lyrics with section tags such as `[Verse]`; without lyrics the cue is instrumental |
+| `seconds` | Length to generate, 160 by default |
+
+| File | Contents |
+|---|---|
+| `audio/bgm/takes/<cue-id>_s<seed>.flac` + `audio/bgm/takes.json` | Generated takes; files you put there as `<cue-id>_<anything>.flac` count as takes too |
+| `audio/bgm/takes/<cue-id>_s<seed>.abc` | The score an instrumental was rendered from |
+| `build/music_plans.json` | Seeds tried and how many notes each score had in its vocal part |
+| `build/music_check.json` | Vocal check per take: recognized text, where, loudness |
+| `audio/bgm/<cue-id>.flac` | The chosen take (copied by the music page or `replay music pick`) |
+
+## Sound effects: sfx.yaml
+
+Built-in synthesized sounds need no entry; this file is for the project's own.
+
+```yaml
+sounds:
+  scream:
+    name: scream
+    voice: kent                   # in this character's voice
+    tone: a bloodcurdling, piercing scream
+    text: Aaaaaah!!
+    max_seconds: 2.5
+    space: upstairs
+  zombie:
+    name: zombies
+    min_gap: 40
+    space: behind-door
+    layers:
+      - { voice: hovat, tone: a slurred zombie moan, text: Uhh... ahh..., pitch: -4 }
+      - { voice: oldnok, tone: a low zombie growl, text: Hrrr... ghh..., pitch: -3, at: 0.5, gain: 0.8 }
+  creak:
+    name: creak
+    file: assets/creak.wav
+```
+
+| Field | Meaning |
+|---|---|
+| `name` / `aliases` | Names used in the script's `[[sfx: ...]]` |
+| `voice` · `tone` · `text` | Whose voice, which delivery, what is shouted (generated by the voice backend) |
+| `seeds` | Takes to generate; the loudest is used. Default `[11, 12]` |
+| `max_seconds` | Keep only the loudest stretch of this length, 3 by default |
+| `pitch` | Pitch shift in semitones; done by resampling, so lowering also slows down |
+| `layers` | Several voices layered with offsets: each layer takes the fields above plus `at` (start second) and `gain` |
+| `space` | Where the sound comes from: `dry` as is · `room` · `next-room` · `behind-door` muffled · `upstairs` through the floor |
+| `min_gap` | Minimum seconds between two plays |
+| `file` | Your own sound file |
+
+`replay sfx` writes `audio/sfx/<sfx-id>.wav`; `audio/sfx/index.json` records each sound's file, aliases, duration and minimum gap, and the player looks sounds up there. `replay sfx --list` lists every sound and alias.
+
 ## Review files: review/
 
 Studio's review pages write these files; the AI and tools only read them. Every record has the same shape:
@@ -254,7 +392,7 @@ Studio's review pages write these files; the AI and tools only read them. Every 
 | `voice-pick.json` | Which voice candidate each character uses | character ID |
 | `voice-review.json` | Line-by-line listening marks | line ID |
 | `art-review.json` | Approval of sprites, backgrounds, CGs, items | asset path |
-| `music-review.json` | Which take each BGM cue uses | cue ID |
+| `music-review.json` | Which take each BGM cue uses (`choice` is the chosen file) | cue ID |
 | `script-review.json` | Optional: script review notes | line ID or scene name |
 
 ## State and incremental rebuilds: .rlyeh/state.json

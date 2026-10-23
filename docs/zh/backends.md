@@ -48,9 +48,10 @@ class BackendInfo:
 | 类别 | 后端 | 说明 | 授权（待核实） |
 |---|---|---|---|
 | import | FVTT、纯文本 | 实战已用 FVTT | 本项目代码 |
-| image | Codex（`codex exec`） | 实战使用；需要用户自己的 Codex | 受 OpenAI 服务条款约束 |
-| image | ComfyUI | 调用用户自己的工作流 | 取决于所用模型 |
+| image | Codex（`codex exec`） | 实战使用；需要用户自己的 Codex，模型和推理强度必须在 `[harness.codex]` 写明 | 受 OpenAI 服务条款约束 |
+| image | ComfyUI | 调用用户自己的工作流（计划中） | 取决于所用模型 |
 | image | 手动导入 | 自己准备图片 | — |
+| image | 占位 | 画简单的剪影和渐变底图，用来跑通流程 | 本项目代码 |
 | voice_design | Qwen3-TTS | VoiceDesign 设计声线 + Base 克隆 | 待核实 |
 | tts | Fish Audio Drama 3（audio.cpp 本地版） | 实战使用，支持方括号语气指示 | Fish Audio 社区授权：要求署名「Built with Fish Audio」；只能克隆本人同意的声音（合成设计出来的声线可以） |
 | asr | SenseVoice | 实战用于配音质检 | 待核实 |
@@ -58,6 +59,7 @@ class BackendInfo:
 | asr / align（英文） | Whisper + WhisperX | 英文项目用 | Whisper 为 MIT；WhisperX 待核实 |
 | music | YuE2（通过 ComfyUI） | 实战使用；支持先出乐谱再渲染 | 模型权重 CC BY-NC 4.0：**只能非商用**，需要署名 |
 | music | 手动导入 | 自己的曲子 | — |
+| music | 占位 | 一段和弦铺底，用来跑通流程 | 本项目代码 |
 | sfx | 内置合成音效库 | 本项目自己合成 | 随本项目发布（Apache-2.0） |
 | encode | ffmpeg | NVENC / AMF / QSV / CPU | 调用用户系统里的 ffmpeg；安装包如果附带 ffmpeg，用 LGPL 构建 |
 
