@@ -54,8 +54,8 @@ The workflow comes from a complete real production: the "Ram's Horn Inn" arc of 
 | Part | Stack | Notes |
 |---|---|---|
 | Core | Python 3.11+, managed with uv | The existing tools are Python; the speech, audio and imaging ecosystems live there |
-| Local server | FastAPI | Studio calls the core through it; the MCP server and CLI share one implementation |
-| Studio | React + TypeScript + Vite, in an Electron shell | Electron ships Chromium, which the renderer reuses — no separate browser download |
+| Local server | Python standard-library HTTP (grown from `replay preview`) | No extra dependencies; Studio, the review pages and the player preview share one server, and the same implementation as the CLI and MCP server |
+| Studio | React + TypeScript + Vite; CodeMirror 6 for the script editor | A web app first (`replay studio` opens it in the browser); M4 wraps it in Electron for the installer |
 | Player | TypeScript, no framework | The same data plays on the web and renders frame by frame |
 | Video | ffmpeg | Detects NVENC / AMF / QSV, falls back to CPU |
 
@@ -83,9 +83,9 @@ See [Pipeline](pipeline.md) for details.
 |---|---|---|
 | **M0 Spec** | This document set: overview, project format, script format, pipeline, agents, backends & licensing | Reviewed and finalized by the maintainer |
 | **M1 Core & CLI** | Generalize the production tools into a pipeline; `replay doctor`; a made-up sample session | The sample renders end to end from the CLI, no AI involved |
-| **M2 Agents** | MCP server; bilingual playbook; export to Claude Code / Codex / DeepSeek Harness | Each harness finishes the sample on its own |
-| **M3 Studio** | Dashboard, review pages, agent panel, export; Chinese and English UI | The sample can be finished without touching the CLI |
-| **M4 Release 0.1** | Windows installer; first-run model setup; macOS / Linux afterwards | From install to finished video on a fresh machine |
+| **M2 Agents** | MCP server; bilingual playbook; export to Claude Code / Codex / DeepSeek Harness | Unit tests pass; each harness's own CLI reads the exported config (no model calls) |
+| **M3 Studio** | Web Studio (`replay studio`): create and open projects, task board (one-click runs, live logs), built-in script editor (highlighting, live linting), review pages, agent panel (export config, show progress, flag reviews), backend settings and environment checks, render and encode; Chinese and English UI | The sample can be finished without touching the CLI |
+| **M4 Release 0.1** | Electron shell and Windows installer; first-run model setup; macOS / Linux afterwards | From install to finished video on a fresh machine |
 
 "Ram's Horn Inn" serves as a private regression project: after every major change it is re-rendered and compared frame by frame against the reference cut (rendering is deterministic, so frame comparison works). It contains real players' chat logs and will **not** be published in the public repository.
 
@@ -98,3 +98,4 @@ See [Pipeline](pipeline.md) for details.
 | [Pipeline](pipeline.md) | Inputs and outputs of each stage, review gates, QA rules, defaults |
 | [Agent integration](agents.md) | CLI, MCP, playbook; exact setup for Claude Code / Codex / DeepSeek Harness |
 | [Backends & licensing](backends.md) | Backend interfaces, first-wave backends, model licenses, privacy and consent |
+| [Studio](studio.md) | The GUI: starting it, what's there, security, endpoints, frontend development |

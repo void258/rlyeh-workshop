@@ -176,10 +176,9 @@ Run: `dsh --profile headless --patch .rlyeh/dsh-patch.yml "Continue this replay 
 
 ## Studio's agent panel
 
-- Choose which harness the project uses; run `replay export-agent` with one click.
-- Dispatch tasks per stage: launch the harness with its headless command and show its structured output as live progress and logs.
-- Or don't dispatch: the user talks to the agent in their own terminal, and Studio just shows progress and pops up reviews.
-- Record time and usage for each run (when the harness reports it).
+- Choose which harness the project uses, run `replay export-agent` with one click, and tell the user what to say when starting the agent in the project folder.
+- Studio doesn't launch agents for the user: the user talks to the agent in their own terminal or app and stays in control of usage.
+- Studio shows task progress and background job logs live, and flags new reviews (from `rlyeh_request_review` or a new review gate).
 
 ## Usage limits and permissions
 

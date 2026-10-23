@@ -6,7 +6,7 @@
 
 把 FVTT 等平台导出的跑团记录交给拉莱耶工坊，由你常用的 AI（Claude Code、Codex、DeepSeek Harness）来润色剧本、设计角色、写美术和音乐提示词；拉莱耶工坊负责配音、质检、消音、立绘后处理、BGM、音效，最后生成一个能在浏览器里播放的视觉小说，以及逐帧渲染出来的视频。选声线、审美术、逐句审听这些需要品味的环节，留给你在图形界面里把关。
 
-> **状态：M2 进行中。** 规格（M0）已定稿；目前能用的是导入跑团记录（`replay import`）、剧本解析和校验（`replay lint`、`replay ids`）、配音一整条线（`replay voice design / pick / build / qa / redo`、`replay bleep`）、美术（`replay art jobs / run / compose / check`，Codex 生图、表情差分合成）、音效（`replay sfx`）、BGM（`replay music gen / check / pick`，YuE2 先找无人声乐谱再渲染）、播放器（`replay build`）、逐帧渲染和混音（`replay render`）、压制（`replay encode`）、环境检查（`replay doctor`），以及选声线、逐句审听、美术审核、BGM 试听这几个页面（`replay preview`）。命令行这一层（M1）已经完整，可以拿 [示例团](examples/fog-harbor/README.md) 从记录一路跑到成片。AI 接入（M2）已经有任务引擎（`replay next` / `replay done`）、MCP 服务（`replay mcp`）、中英流程手册，`replay export-agent` 一键导出给 Claude Code、Codex 和 DeepSeek Harness。欢迎在 Issues 里讨论设计。
+> **状态：M3 进行中。** 规格（M0）已定稿；目前能用的是导入跑团记录（`replay import`）、剧本解析和校验（`replay lint`、`replay ids`）、配音一整条线（`replay voice design / pick / build / qa / redo`、`replay bleep`）、美术（`replay art jobs / run / compose / check`，Codex 生图、表情差分合成）、音效（`replay sfx`）、BGM（`replay music gen / check / pick`，YuE2 先找无人声乐谱再渲染）、播放器（`replay build`）、逐帧渲染和混音（`replay render`）、压制（`replay encode`）、环境检查（`replay doctor`），以及选声线、逐句审听、美术审核、BGM 试听这几个页面（`replay preview`）。命令行这一层（M1）已经完整，可以拿 [示例团](examples/fog-harbor/README.md) 从记录一路跑到成片。AI 接入（M2）已经有任务引擎（`replay next` / `replay done`）、MCP 服务（`replay mcp`）、中英流程手册，`replay export-agent` 一键导出给 Claude Code、Codex 和 DeepSeek Harness。图形界面（M3）先做网页版：`replay studio` 已经能新建、打开项目，看任务看板，一键运行工具任务、看实时日志。欢迎在 Issues 里讨论设计。
 
 ## 它能做什么
 
@@ -40,6 +40,7 @@
 - [AI 接入](docs/zh/agents.md)
 - [后端与授权](docs/zh/backends.md)
 - [播放器主题](docs/zh/theming.md)：每个团可以有自己的界面风格，让 AI 按团的气质设计
+- [Studio](docs/zh/studio.md)：图形界面（网页版），`replay studio` 打开
 
 ## 路线图
 
@@ -47,9 +48,9 @@
 |---|---|
 | M0 ✓ | 规格文档 |
 | M1 ✓ | 核心流水线与命令行，示例团从头跑到成片 |
-| **M2** ← 当前 | MCP 服务与流程手册，接入三家 harness |
-| M3 | Studio 图形界面（中英双语） |
-| M4 | 发布 0.1（先 Windows） |
+| M2 ✓ | MCP 服务与流程手册，接入三家 harness |
+| **M3** ← 当前 | Studio 图形界面（先做网页版，中英双语，内置剧本编辑器） |
+| M4 | 发布 0.1（Electron 安装包，先 Windows） |
 
 ## 开发
 

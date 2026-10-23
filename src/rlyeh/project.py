@@ -3,6 +3,7 @@ import pathlib
 import re
 import tomllib
 from dataclasses import dataclass, field
+from importlib import resources
 
 import yaml
 
@@ -11,6 +12,16 @@ from .script.ids import assign
 
 CONFIG = 'replay.toml'
 CAST = 'cast.yaml'
+GITIGNORE = """# 拉莱耶工坊：可以随时重新生成的东西 / regenerable outputs
+build/
+.rlyeh/
+art/_raw/
+art/_overview/
+audio/voice/
+audio/voice-bleep/
+audio/sfx/_takes/
+audio/bgm/takes/
+"""
 
 
 class ProjectError(Exception):
@@ -145,6 +156,29 @@ class Project:
             assign(ch)
             out.append(ch)
         return out
+
+
+def create(target, title=None, lang='zh-CN'):
+    """新建项目文件夹：目录结构、replay.toml、cast.yaml、第一章、曲目表、音效表、.gitignore。已经是项目时抛 ProjectError。"""
+    target = pathlib.Path(target).resolve()
+    if (target / CONFIG).exists():
+        raise ProjectError(f'{target} already contains {CONFIG}')
+    lang = 'en' if (lang or '').lower().startswith('en') else 'zh-CN'
+    tpl = resources.files('rlyeh') / 'templates' / lang
+    pid = re.sub(r'[^A-Za-z0-9_-]+', '-', target.name).strip('-').lower() or 'replay'
+    for d in ['script', 'logs/raw', 'voices', 'art/prompts', 'art/sprites', 'art/backgrounds', 'art/cg', 'art/items',
+              'audio/bgm', 'audio/sfx', 'review']:
+        (target / d).mkdir(parents=True, exist_ok=True)
+    config = (tpl / 'replay.toml').read_text(encoding='utf-8').replace('{id}', pid).replace('{title}', title or target.name)
+    (target / CONFIG).write_text(config, encoding='utf-8')
+    (target / CAST).write_text((tpl / 'cast.yaml').read_text(encoding='utf-8'), encoding='utf-8')
+    (target / 'script' / '01-chapter.md').write_text((tpl / 'chapter.md').read_text(encoding='utf-8'), encoding='utf-8')
+    for name in ('music.yaml', 'sfx.yaml'):
+        (target / name).write_text((tpl / name).read_text(encoding='utf-8'), encoding='utf-8')
+    gi = target / '.gitignore'
+    if not gi.exists():
+        gi.write_text(GITIGNORE, encoding='utf-8')
+    return target, lang
 
 
 def find_root(start='.'):

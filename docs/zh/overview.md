@@ -54,8 +54,8 @@
 | 部分 | 技术选型 | 说明 |
 |---|---|---|
 | 核心 | Python 3.11+，用 uv 管理依赖 | 现有工具都是 Python；语音、音频、图像生态都在这边 |
-| 本地服务 | FastAPI | Studio 通过它调用核心；MCP 服务与命令行共用同一套实现 |
-| Studio | React + TypeScript + Vite，外包 Electron | Electron 自带 Chromium，逐帧渲染直接复用，不用另装浏览器 |
+| 本地服务 | Python 标准库 HTTP（由 `replay preview` 扩展而来） | 不多装依赖；Studio、审核页、播放器预览共用一个服务，和命令行、MCP 服务共用同一套实现 |
+| Studio | React + TypeScript + Vite；剧本编辑器用 CodeMirror 6 | 先做成网页（`replay studio` 在浏览器里打开），M4 再套 Electron 壳做安装包 |
 | 播放器 | TypeScript，无框架 | 同一份数据既能网页播放，也能逐帧渲染 |
 | 视频 | ffmpeg | 自动检测 NVENC / AMF / QSV，没有就用 CPU |
 
@@ -83,9 +83,9 @@
 |---|---|---|
 | **M0 规格** | 本套文档：总览、项目格式、剧本格式、流水线、AI 接入、后端与授权 | 维护者审阅定稿 |
 | **M1 核心与命令行** | 把实战工具抽成通用流水线；`replay doctor` 环境自检；一个编出来的示例团 | 示例团不靠 AI、只用命令行从头跑到成片 |
-| **M2 接入 AI** | MCP 服务；中英流程手册；导出到 Claude Code / Codex / DeepSeek Harness | 三家各自独立把示例团做完 |
-| **M3 Studio** | 项目看板、审核页、AI 面板、渲染导出；中英界面 | 不碰命令行也能做完示例团 |
-| **M4 发布 0.1** | Windows 安装包；首次运行引导装模型；之后补 macOS / Linux | 新机器从安装到出片 |
+| **M2 接入 AI** | MCP 服务；中英流程手册；导出到 Claude Code / Codex / DeepSeek Harness | 单元测试通过；三家各自的命令行都能读出导出的配置（不调模型） |
+| **M3 Studio** | 网页版 Studio（`replay studio`）：新建和打开项目、任务看板（一键运行、实时日志）、内置剧本编辑器（高亮、实时校验）、审核页、AI 面板（导出配置、显示进度、提醒审核）、后端设置和环境检查、渲染压制；中英界面 | 不碰命令行也能做完示例团 |
+| **M4 发布 0.1** | Electron 壳和 Windows 安装包；首次运行引导装模型；之后补 macOS / Linux | 新机器从安装到出片 |
 
 「羊角旅馆」作为私有回归测试项目：每次大改动都重新渲染，逐帧和基准成片比对（渲染是确定的，所以可以逐帧比）。它包含真人玩家的聊天记录，**不会**放进公开仓库。
 
@@ -98,3 +98,4 @@
 | [流水线](pipeline.md) | 每个阶段的输入输出、人工关卡、质检规则、默认规则 |
 | [AI 接入](agents.md) | 命令行、MCP、流程手册；Claude Code / Codex / DeepSeek Harness 的具体接法 |
 | [后端与授权](backends.md) | 后端接口、第一批后端、模型授权、隐私与同意 |
+| [Studio](studio.md) | 图形界面：启动、现在有什么、安全、接口、前端开发 |

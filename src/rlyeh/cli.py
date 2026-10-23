@@ -2,31 +2,17 @@
 import argparse
 import json
 import pathlib
-import re
 import sys
-from importlib import resources
 
 from . import SPEC_VERSION, __version__, art, doctor, encode, harness, i18n, importers, music, player, render, sfx, tasks, voice
 from .backends import BackendError
 from .backends.worker import WorkerError
 from .player.theme import ThemeError
 from .i18n import t
-from .project import Project, ProjectError, find_root
+from .project import Project, ProjectError, create, find_root
 from .script import ids as script_ids
 from .script.lint import lint
 from .script.model import Directive, Scene
-
-GITIGNORE = """# 拉莱耶工坊：可以随时重新生成的东西 / regenerable outputs
-build/
-.rlyeh/
-art/_raw/
-art/_overview/
-audio/voice/
-audio/voice-bleep/
-audio/sfx/_takes/
-audio/bgm/takes/
-"""
-
 
 def _out(args, data, text):
     if args.json:
@@ -50,22 +36,7 @@ def cmd_init(args):
     if (target / 'replay.toml').exists():
         _out(args, dict(ok=False, error='exists', path=str(target)), t('cli.init_exists', path=target))
         return 1
-    lang = 'en' if (args.lang or i18n.lang()).lower().startswith('en') else 'zh-CN'
-    tpl = resources.files('rlyeh') / 'templates' / lang
-    pid = re.sub(r'[^A-Za-z0-9_-]+', '-', target.name).strip('-').lower() or 'replay'
-    title = args.title or target.name
-    for d in ['script', 'logs/raw', 'voices', 'art/prompts', 'art/sprites', 'art/backgrounds', 'art/cg', 'art/items',
-              'audio/bgm', 'audio/sfx', 'review']:
-        (target / d).mkdir(parents=True, exist_ok=True)
-    config = (tpl / 'replay.toml').read_text(encoding='utf-8').replace('{id}', pid).replace('{title}', title)
-    (target / 'replay.toml').write_text(config, encoding='utf-8')
-    (target / 'cast.yaml').write_text((tpl / 'cast.yaml').read_text(encoding='utf-8'), encoding='utf-8')
-    (target / 'script' / '01-chapter.md').write_text((tpl / 'chapter.md').read_text(encoding='utf-8'), encoding='utf-8')
-    for name in ('music.yaml', 'sfx.yaml'):
-        (target / name).write_text((tpl / name).read_text(encoding='utf-8'), encoding='utf-8')
-    gi = target / '.gitignore'
-    if not gi.exists():
-        gi.write_text(GITIGNORE, encoding='utf-8')
+    target, lang = create(target, args.title, args.lang or i18n.lang())
     _out(args, dict(ok=True, path=str(target), lang=lang), t('cli.init_done', path=target))
     return 0
 
@@ -361,6 +332,23 @@ def cmd_export_agent(args):
     return 0
 
 
+def cmd_studio(args):
+    from . import studio
+    root = find_root(args.project)
+    proj = Project(root) if root else None
+    if proj and not args.lang:
+        i18n.set_lang(i18n.detect(proj.lang))
+
+    def ready(url):
+        print(t('cli.studio_at', url=url), flush=True)
+        if not args.no_browser:
+            import webbrowser
+            webbrowser.open(url)
+
+    studio.serve(proj, args.host, args.port, on_ready=ready)
+    return 0
+
+
 def cmd_mcp(args):
     from .mcp import serve
     serve(args.project)                              # 标准输出只放 MCP 协议消息
@@ -546,6 +534,11 @@ def build_parser():
 
     p = sub.add_parser('bleep', parents=[common], help='bleep profanity / 消音')
     p.set_defaults(func=cmd_bleep)
+    p = sub.add_parser('studio', parents=[common], help='open Studio in the browser / 在浏览器里打开 Studio')
+    p.add_argument('--host', default='127.0.0.1')
+    p.add_argument('--port', type=int, default=8766)
+    p.add_argument('--no-browser', action='store_true', help="don't open the browser / 不自动打开浏览器")
+    p.set_defaults(func=cmd_studio)
     p = sub.add_parser('preview', parents=[common], help='local preview and review pages / 本地预览与审核页')
     p.add_argument('--host', default='127.0.0.1')
     p.add_argument('--port', type=int, default=8766)

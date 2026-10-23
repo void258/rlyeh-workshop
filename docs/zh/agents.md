@@ -176,10 +176,9 @@ dsh 的配置只有 profile 和 `$DSH_HOME` 两级，没有项目级，所以导
 
 ## Studio 的 AI 面板
 
-- 选择这个项目用哪家 harness；一键执行 `replay export-agent`。
-- 按阶段派任务：用对应的无人值守命令启动 harness，把结构化输出实时显示成进度和日志。
-- 也可以不派任务：用户在自己的终端里和 AI 对话，Studio 只负责显示进度、弹出审核。
-- 每次运行记下用时和用量（harness 提供的话）。
+- 选择这个项目用哪家 harness，一键执行 `replay export-agent`，告诉用户在项目文件夹里启动 AI 时怎么跟它说。
+- Studio 不替用户启动 AI：用户在自己的终端或应用里和 AI 对话，用多少额度由用户自己掌握。
+- Studio 实时显示任务进度和后台任务日志；AI 调了 `rlyeh_request_review` 或出现新的审核关卡时提醒用户。
 
 ## 用量和权限
 

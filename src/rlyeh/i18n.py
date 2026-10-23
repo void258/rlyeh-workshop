@@ -33,6 +33,7 @@ MESSAGES = {
     'cli.ids_done': ('补上了 {n} 个台词 ID', 'assigned {n} line IDs'),
     'cli.ids_none': ('所有台词都已经有 ID', 'every line already has an ID'),
     'cli.init_done': ('已创建项目：{path}', 'project created: {path}'),
+    'cli.studio_at': ('Studio 已启动：{url}（Ctrl+C 停止）', 'Studio is running at {url} (Ctrl+C to stop)'),
     'cli.init_exists': ('{path} 里已经有 replay.toml', '{path} already contains replay.toml'),
     'cli.status_chapter': ('第 {n} 章 {title}：{lines} 句台词（{voiced} 句要配音），{scenes} 幕，{directives} 条指令',
                            'Chapter {n} {title}: {lines} lines ({voiced} voiced), {scenes} scenes, {directives} directions'),

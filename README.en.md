@@ -6,7 +6,7 @@
 
 Hand R'lyeh Workshop a session log exported from Foundry VTT or a similar platform. Your usual AI agent (Claude Code, Codex, or DeepSeek Harness) polishes the script, designs the characters, and writes the art and music prompts. R'lyeh Workshop handles voice acting, QA, profanity bleeping, sprite post-processing, BGM and sound effects, then produces a visual novel that plays in the browser plus a frame-by-frame rendered video. The steps that need taste — picking voices, approving art, listening line by line — stay with you, in a graphical interface.
 
-> **Status: M2 in progress.** The specification (M0) is final. What works today is log import (`replay import`), script parsing and linting (`replay lint`, `replay ids`), the whole voice line (`replay voice design / pick / build / qa / redo`, `replay bleep`), art (`replay art jobs / run / compose / check`: image generation through Codex, expression compositing), sound effects (`replay sfx`), BGM (`replay music gen / check / pick`: YuE2 with a search for vocal-free scores), the player (`replay build`), frame-by-frame rendering and mixing (`replay render`), encoding (`replay encode`), environment checks (`replay doctor`) and the voice-picking, line-review, art-review and music pages (`replay preview`). The command-line layer (M1) is complete: the [sample session](examples/fog-harbor/README.en.md) runs from log to finished video. Agent integration (M2) has the task engine (`replay next` / `replay done`), the MCP server (`replay mcp`) and playbooks in both languages, and `replay export-agent` sets up Claude Code, Codex and DeepSeek Harness in one step. Design discussion is welcome in Issues.
+> **Status: M3 in progress.** The specification (M0) is final. What works today is log import (`replay import`), script parsing and linting (`replay lint`, `replay ids`), the whole voice line (`replay voice design / pick / build / qa / redo`, `replay bleep`), art (`replay art jobs / run / compose / check`: image generation through Codex, expression compositing), sound effects (`replay sfx`), BGM (`replay music gen / check / pick`: YuE2 with a search for vocal-free scores), the player (`replay build`), frame-by-frame rendering and mixing (`replay render`), encoding (`replay encode`), environment checks (`replay doctor`) and the voice-picking, line-review, art-review and music pages (`replay preview`). The command-line layer (M1) is complete: the [sample session](examples/fog-harbor/README.en.md) runs from log to finished video. Agent integration (M2) has the task engine (`replay next` / `replay done`), the MCP server (`replay mcp`) and playbooks in both languages, and `replay export-agent` sets up Claude Code, Codex and DeepSeek Harness in one step. The GUI (M3) starts as a web app: `replay studio` already creates and opens projects, shows the task board, runs tool tasks with one click and streams their logs. Design discussion is welcome in Issues.
 
 ## What it does
 
@@ -40,6 +40,7 @@ Hand R'lyeh Workshop a session log exported from Foundry VTT or a similar platfo
 - [Agent integration](docs/en/agents.md)
 - [Backends & licensing](docs/en/backends.md)
 - [Player themes](docs/en/theming.md): every campaign can have its own look, designed by the AI to fit it
+- [Studio](docs/en/studio.md): the GUI (a web app for now), opened with `replay studio`
 
 ## Roadmap
 
@@ -47,9 +48,9 @@ Hand R'lyeh Workshop a session log exported from Foundry VTT or a similar platfo
 |---|---|
 | M0 ✓ | Specification |
 | M1 ✓ | Core pipeline and CLI; a sample session rendered end to end |
-| **M2** ← current | MCP server and playbooks for the three harnesses |
-| M3 | Studio GUI (Chinese and English) |
-| M4 | Release 0.1 (Windows first) |
+| M2 ✓ | MCP server and playbooks for the three harnesses |
+| **M3** ← current | Studio GUI (a web app first, Chinese and English, with a built-in script editor) |
+| M4 | Release 0.1 (Electron installer, Windows first) |
 
 ## Development
 

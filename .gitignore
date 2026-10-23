@@ -205,6 +205,9 @@ cython_debug/
 # Temporary file for partial code execution
 tempCodeRunnerFile.py
 
+# Studio 前端（studio/）的依赖
+node_modules/
+
 # Ruff stuff:
 .ruff_cache/
 

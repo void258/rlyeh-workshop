@@ -115,10 +115,18 @@ def music_data(project):
     return dict(meta=meta(project), cues=out, battle=music.battle_cue(project))
 
 
-def make_handler(project):
-    root = project.root.resolve()
+class Context:
+    """服务当前用的项目。replay preview 固定一个；Studio 里可以打开、关闭、切换（None 表示没打开项目）。"""
+    def __init__(self, project=None):
+        self.project = project
+
+
+def make_handler(source):
+    ctx = source if isinstance(source, Context) else Context(source)
 
     class Handler(http.server.BaseHTTPRequestHandler):
+        context = ctx
+
         def log_message(self, fmt, *args):
             pass
 
@@ -133,8 +141,17 @@ def make_handler(project):
         def _json(self, data, code=200):
             self._send(code, json.dumps(data, ensure_ascii=False).encode('utf-8'), 'application/json; charset=utf-8')
 
+        def _project(self):
+            if ctx.project is None:
+                self._json(dict(ok=False, error='no project is open'), 409)
+            return ctx.project
+
         def do_GET(self):
             path = urllib.parse.unquote(urllib.parse.urlparse(self.path).path)
+            project = self._project()
+            if project is None:
+                return
+            root = project.root.resolve()
             if path in ('/player', '/player/'):             # replay build 打出来的播放器
                 self.send_response(302)
                 self.send_header('Location', '/files/build/player/index.html')
@@ -164,6 +181,9 @@ def make_handler(project):
 
         def do_POST(self):
             path = urllib.parse.urlparse(self.path).path
+            project = self._project()
+            if project is None:
+                return
             try:
                 body = json.loads(self.rfile.read(int(self.headers.get('Content-Length', 0))).decode('utf-8'))
                 if path == '/api/voices/pick':
@@ -182,8 +202,8 @@ def make_handler(project):
     return Handler
 
 
-def make_server(project, host='127.0.0.1', port=8766):
-    return http.server.ThreadingHTTPServer((host, port), make_handler(project))
+def make_server(project, host='127.0.0.1', port=8766, handler=None):
+    return http.server.ThreadingHTTPServer((host, port), handler or make_handler(project))
 
 
 def serve(project, host='127.0.0.1', port=8766, on_ready=None):

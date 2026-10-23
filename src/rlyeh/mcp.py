@@ -87,6 +87,23 @@ TOOLS = [
 ]
 
 
+def stage_command(project, stage=None, task=None, args=None):
+    """要在后台跑的 replay 命令：tool 任务的 command，或者 STAGES 里的阶段加额外参数。不能用参数换项目。"""
+    if task:
+        t = next((x for x in tasks.plan(project) if x.id == task), None)
+        if t is None or t.kind != 'tool':
+            raise ValueError(f'{task} is not a tool task')
+        argv = list(t.command)
+    elif stage in STAGES:
+        argv = list(STAGES[stage])
+    else:
+        raise ValueError(f'unknown stage {stage}; choose from {", ".join(sorted(STAGES))}')
+    extra = [str(a) for a in args or []]
+    if any(a in ('-C', '--project') or a.startswith('--project=') for a in extra):
+        raise ValueError('args may not change the project folder')
+    return argv + extra
+
+
 class Server:
     def __init__(self, start='.'):
         self.start = start
@@ -215,19 +232,11 @@ class Server:
         return dict(total=len(rows), offset=offset, lines=rows[offset:offset + limit])
 
     def tool_run_stage(self, stage=None, task=None, args=None):
-        if task:
-            t = next((x for x in tasks.plan(self.project) if x.id == task), None)
-            if t is None or t.kind != 'tool':
-                return dict(error=f'{task} is not a tool task')
-            argv = list(t.command)
-        elif stage in STAGES:
-            argv = list(STAGES[stage])
-        else:
-            return dict(error=f'unknown stage {stage}; choose from {", ".join(sorted(STAGES))}')
-        extra = [str(a) for a in args or []]
-        if any(a in ('-C', '--project') or a.startswith('--project=') for a in extra):
-            return dict(error='args may not change the project folder')
-        rec = jobs.start(self.project.root, argv + extra)
+        try:
+            argv = stage_command(self.project, stage, task, args)
+        except ValueError as e:
+            return dict(error=str(e))
+        rec = jobs.start(self.project.root, argv)
         return dict(job=rec['id'], command='replay ' + ' '.join(rec['command']), status=rec['status'])
 
     def tool_job(self, id=None):
