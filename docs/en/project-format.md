@@ -121,6 +121,46 @@ codec = "av1"
 quality = 37                      # NVENC cq; mapped to an SVT-AV1 crf when encoding on CPU
 ```
 
+### Import settings
+
+```toml
+[import]
+system = "demonlord"              # which game system's roll cards to parse; omit to try all
+gm = ["void"]                     # GM account names
+observers = ["ob1"]               # spectators
+renamed = { "Shiro" = "Shark" }   # accounts renamed mid-campaign, unified under one name
+session_gap_hours = 3             # a gap this long starts a new session
+min_session_messages = 20         # shorter sessions are treated as tests and dropped
+
+# Anonymization: real name → alias, replaced in speakers and text on import
+[aliases]
+"John" = "Kobayashi"
+```
+
+## Imported logs
+
+`replay import` merges every export in `logs/raw/` (txt, zip) into `logs/events.jsonl`, one event per line:
+
+```json
+{"id": "e000042", "ts": "2022-07-20T21:12:05", "speaker": "Phlegm", "text": "19\n1d20 + 3 = 16 + 3 = 19",
+ "kind": "roll", "role": "character", "data": {"formula": "1d20 + 3", "total": "19", "detail": "16 + 3"},
+ "source": "log.zip/fvtt-log-Wed-Jul-20-2022.txt", "session": 1}
+```
+
+| Field | Meaning |
+|---|---|
+| `id` | Event ID, numbered in time order |
+| `ts` | Time (ISO 8601); `null` when a plain-text log has no times |
+| `speaker` | Speaker (after `renamed` and `[aliases]`) |
+| `text` | Original text |
+| `kind` | `message` · `ooc` (out-of-character, starting with a parenthesis) · `roll` · `card` (system card) |
+| `role` | `gm` · `player` (an account in `[players]`) · `observer` · `character` (everyone else, usually characters or monsters) |
+| `data` | Roll formula and result, or fields parsed from a system card (attack, check, damage, spell…) |
+| `source` | Which export it came from |
+| `session` | Session number |
+
+`logs/sessions.json` is written alongside: each session's start, end, event count and speakers, dropped test stretches, and possible private details found (phone numbers, emails, QQ numbers, links).
+
 ## cast.yaml
 
 The cast sheet. Character IDs are ASCII; `name` is the display name, per language.

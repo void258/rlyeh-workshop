@@ -7,6 +7,7 @@ language = "zh-CN"                # 剧本语言：zh-CN / en
 
 # 场外玩家 → 他们扮演的角色 ID（见 cast.yaml）；GM 写成 { role = "gm" }
 [players]
+"小林" = "hero"
 "GM" = { role = "gm" }
 
 [harness]

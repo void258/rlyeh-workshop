@@ -121,6 +121,46 @@ codec = "av1"
 quality = 37                      # NVENC cq；CPU 编码时自动换算成 SVT-AV1 crf
 ```
 
+### 导入相关的配置
+
+```toml
+[import]
+system = "demonlord"              # 解析哪个游戏系统的骰子卡片；不写就挨个试
+gm = ["void"]                     # GM 的账号名
+observers = ["ob1"]               # 旁观者
+renamed = { "白石" = "鲨鱼" }     # 中途改过名的账号，统一成一个名字
+session_gap_hours = 3             # 两条消息隔这么久就算下一场
+min_session_messages = 20         # 少于这么多条的一场当作测试，丢掉
+
+# 匿名化：真名 → 化名。导入时发言人和正文里都会换掉
+[aliases]
+"张三" = "小林"
+```
+
+## 导入后的记录
+
+`replay import` 把 `logs/raw/` 里的所有导出（txt、zip）合并成 `logs/events.jsonl`，每行一条：
+
+```json
+{"id": "e000042", "ts": "2022-07-20T21:12:05", "speaker": "浓痰", "text": "19\n1d20 + 3 = 16 + 3 = 19",
+ "kind": "roll", "role": "character", "data": {"formula": "1d20 + 3", "total": "19", "detail": "16 + 3"},
+ "source": "log.zip/fvtt-log-Wed-Jul-20-2022.txt", "session": 1}
+```
+
+| 字段 | 含义 |
+|---|---|
+| `id` | 事件 ID，按时间顺序编号 |
+| `ts` | 时间（ISO 8601）；纯文本记录没写时间时为 `null` |
+| `speaker` | 发言人（已经按 `renamed`、`[aliases]` 换过） |
+| `text` | 原文 |
+| `kind` | `message` 普通消息 · `ooc` 括号开头的场外话 · `roll` 掷骰 · `card` 系统卡片 |
+| `role` | `gm` · `player`（`[players]` 里的玩家账号）· `observer` · `character`（其余发言人，一般是角色或怪物） |
+| `data` | 掷骰的算式和结果，或者系统卡片解析出的字段（攻击、检定、伤害、法术……） |
+| `source` | 来自哪份导出 |
+| `session` | 第几场 |
+
+同时写出 `logs/sessions.json`：每场的起止时间、条数、发言人，被丢掉的测试段，以及扫到的疑似隐私信息（手机号、邮箱、QQ 号、链接）。
+
 ## cast.yaml
 
 角色表。角色 ID 是 ASCII，`name` 是显示名，可以分语言。

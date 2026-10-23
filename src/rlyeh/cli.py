@@ -6,7 +6,7 @@ import re
 import sys
 from importlib import resources
 
-from . import SPEC_VERSION, __version__, i18n
+from . import SPEC_VERSION, __version__, i18n, importers
 from .i18n import t
 from .project import Project, ProjectError, find_root
 from .script import ids as script_ids
@@ -110,6 +110,30 @@ def cmd_status(args):
     return 0
 
 
+def cmd_import(args):
+    proj = _project(args)
+    copied = importers.copy_raw(args.files, proj.root / 'logs' / 'raw') if args.files else []
+    events, rep = importers.run(proj.root, proj.config)
+    lines = []
+    if copied:
+        lines.append(t('cli.import_copied', names='、'.join(copied)))
+    lines.append(t('cli.import_summary', files=len(rep['files']), raw=rep['raw_messages'], merged=rep['merged_messages'],
+                   events=rep['events'], sessions=len(rep['sessions'])))
+    for s in rep['sessions']:
+        lines.append(t('cli.import_session', n=s['session'], start=s['start'] or '?', end=s['end'] or '?', events=s['events'],
+                       speakers='、'.join(s['speakers'][:12]) + ('…' if len(s['speakers']) > 12 else '')))
+    if rep['dropped']:
+        lines.append(t('cli.import_dropped', n=len(rep['dropped'])))
+    if rep['unknown_speakers']:
+        lines.append(t('cli.import_unknown', names='、'.join(rep['unknown_speakers'])))
+    if rep['private']:
+        lines.append(t('cli.import_private', n=len(rep['private'])))
+        lines += [f"  {p['id']} {p['speaker']}: {p['text']}" for p in rep['private'][:20]]
+    lines.append(t('cli.import_consent'))
+    _out(args, dict(ok=True, copied=copied, **rep), '\n'.join(lines))
+    return 0
+
+
 def build_parser():
     ap = argparse.ArgumentParser(prog='replay', description="R'lyeh Workshop / 拉莱耶工坊")
     ap.add_argument('--version', action='version', version=f'rlyeh-workshop {__version__} (spec {SPEC_VERSION})')
@@ -127,6 +151,9 @@ def build_parser():
     p.set_defaults(func=cmd_lint)
     p = sub.add_parser('ids', parents=[common], help='assign line IDs / 补台词 ID')
     p.set_defaults(func=cmd_ids)
+    p = sub.add_parser('import', parents=[common], help='import session logs / 导入跑团记录')
+    p.add_argument('files', nargs='*', help='log files, folders or zips / 记录文件、文件夹或 zip')
+    p.set_defaults(func=cmd_import)
     p = sub.add_parser('status', parents=[common], help='project status / 项目进度')
     p.set_defaults(func=cmd_status)
     return ap
